@@ -1,0 +1,528 @@
+{
+  "商户管理": [
+    {
+      "text": "🏠 首页",
+      "href": "/portal"
+    },
+    {
+      "text": "📋 商户列表",
+      "href": "/merchant/list"
+    },
+    {
+      "text": "✅ 资质审核",
+      "href": "/merchant/audit"
+    },
+    {
+      "text": "📋 业务复审",
+      "href": "/merchant/business-audit"
+    },
+    {
+      "text": "🔍 合规终审",
+      "href": "/merchant/compliance-audit"
+    },
+    {
+      "text": "📝 合同签署",
+      "href": "/merchant/contract-audit"
+    },
+    {
+      "text": "💳 支付进件",
+      "href": "/merchant/payment-audit"
+    },
+    {
+      "text": "🤖 AI+应用",
+      "href": "/ai"
+    }
+  ],
+  "客户管理": [
+    {
+      "text": "🏠 首页",
+      "href": "/portal"
+    },
+    {
+      "text": "📋 商户列表",
+      "href": "/merchant/list"
+    },
+    {
+      "text": "✅ 资质审核",
+      "href": "/merchant/audit"
+    },
+    {
+      "text": "📋 业务复审",
+      "href": "/merchant/business-audit"
+    },
+    {
+      "text": "🔍 合规终审",
+      "href": "/merchant/compliance-audit"
+    },
+    {
+      "text": "📝 合同签署",
+      "href": "/merchant/contract-audit"
+    },
+    {
+      "text": "💳 支付进件",
+      "href": "/merchant/payment-audit"
+    },
+    {
+      "text": "📋 客户列表",
+      "href": "/customer/list"
+    },
+    {
+      "text": "🏷️ 客户标签",
+      "href": "/customer/tags"
+    },
+    {
+      "text": "🤖 AI+应用",
+      "href": "/ai"
+    }
+  ],
+  "商品管理": [
+    {
+      "text": "🏠 首页",
+      "href": "/portal"
+    },
+    {
+      "text": "📋 商户列表",
+      "href": "/merchant/list"
+    },
+    {
+      "text": "✅ 资质审核",
+      "href": "/merchant/audit"
+    },
+    {
+      "text": "📋 业务复审",
+      "href": "/merchant/business-audit"
+    },
+    {
+      "text": "🔍 合规终审",
+      "href": "/merchant/compliance-audit"
+    },
+    {
+      "text": "📝 合同签署",
+      "href": "/merchant/contract-audit"
+    },
+    {
+      "text": "💳 支付进件",
+      "href": "/merchant/payment-audit"
+    },
+    {
+      "text": "📋 客户列表",
+      "href": "/customer/list"
+    },
+    {
+      "text": "🏷️ 客户标签",
+      "href": "/customer/tags"
+    },
+    {
+      "text": "📋 商品列表",
+      "href": "/product/list"
+    },
+    {
+      "text": "✅ 商品审核",
+      "href": "/product/audit"
+    },
+    {
+      "text": "📂 分类管理",
+      "href": "/product/category"
+    },
+    {
+      "text": "📦 库存管理",
+      "href": "/product/stock"
+    },
+    {
+      "text": "🎁 权益引入",
+      "href": "/product/benefit"
+    },
+    {
+      "text": "🤖 AI+应用",
+      "href": "/ai"
+    }
+  ],
+  "订单管理": [
+    {
+      "text": "🏠 首页",
+      "href": "/portal"
+    },
+    {
+      "text": "📋 商户列表",
+      "href": "/merchant/list"
+    },
+    {
+      "text": "✅ 资质审核",
+      "href": "/merchant/audit"
+    },
+    {
+      "text": "📋 业务复审",
+      "href": "/merchant/business-audit"
+    },
+    {
+      "text": "🔍 合规终审",
+      "href": "/merchant/compliance-audit"
+    },
+    {
+      "text": "📝 合同签署",
+      "href": "/merchant/contract-audit"
+    },
+    {
+      "text": "💳 支付进件",
+      "href": "/merchant/payment-audit"
+    },
+    {
+      "text": "📋 客户列表",
+      "href": "/customer/list"
+    },
+    {
+      "text": "🏷️ 客户标签",
+      "href": "/customer/tags"
+    },
+    {
+      "text": "📋 商品列表",
+      "href": "/product/list"
+    },
+    {
+      "text": "✅ 商品审核",
+      "href": "/product/audit"
+    },
+    {
+      "text": "📂 分类管理",
+      "href": "/product/category"
+    },
+    {
+      "text": "📦 库存管理",
+      "href": "/product/stock"
+    },
+    {
+      "text": "🎁 权益引入",
+      "href": "/product/benefit"
+    },
+    {
+      "text": "📋 订单列表",
+      "href": "/order/list"
+    },
+    {
+      "text": "💳 支付管理",
+      "href": "/order/pay"
+    },
+    {
+      "text": "💰 退款管理",
+      "href": "/order/refund"
+    },
+    {
+      "text": "⭐ 订单评价",
+      "href": "/order/evaluation"
+    },
+    {
+      "text": "🤖 AI+应用",
+      "href": "/ai"
+    }
+  ],
+  "财务管理": [
+    {
+      "text": "🏠 首页",
+      "href": "/portal"
+    },
+    {
+      "text": "📋 商户列表",
+      "href": "/merchant/list"
+    },
+    {
+      "text": "✅ 资质审核",
+      "href": "/merchant/audit"
+    },
+    {
+      "text": "📋 业务复审",
+      "href": "/merchant/business-audit"
+    },
+    {
+      "text": "🔍 合规终审",
+      "href": "/merchant/compliance-audit"
+    },
+    {
+      "text": "📝 合同签署",
+      "href": "/merchant/contract-audit"
+    },
+    {
+      "text": "💳 支付进件",
+      "href": "/merchant/payment-audit"
+    },
+    {
+      "text": "📋 客户列表",
+      "href": "/customer/list"
+    },
+    {
+      "text": "🏷️ 客户标签",
+      "href": "/customer/tags"
+    },
+    {
+      "text": "📋 商品列表",
+      "href": "/product/list"
+    },
+    {
+      "text": "✅ 商品审核",
+      "href": "/product/audit"
+    },
+    {
+      "text": "📂 分类管理",
+      "href": "/product/category"
+    },
+    {
+      "text": "📦 库存管理",
+      "href": "/product/stock"
+    },
+    {
+      "text": "🎁 权益引入",
+      "href": "/product/benefit"
+    },
+    {
+      "text": "📋 订单列表",
+      "href": "/order/list"
+    },
+    {
+      "text": "💳 支付管理",
+      "href": "/order/pay"
+    },
+    {
+      "text": "💰 退款管理",
+      "href": "/order/refund"
+    },
+    {
+      "text": "⭐ 订单评价",
+      "href": "/order/evaluation"
+    },
+    {
+      "text": "📊 结算管理",
+      "href": "/finance/settlement"
+    },
+    {
+      "text": "📄 发票管理",
+      "href": "/finance/invoice"
+    },
+    {
+      "text": "🔍 对账管理",
+      "href": "/finance/reconciliation"
+    },
+    {
+      "text": "🤖 AI+应用",
+      "href": "/ai"
+    }
+  ],
+  "风险管理": [
+    {
+      "text": "🏠 首页",
+      "href": "/portal"
+    },
+    {
+      "text": "📋 商户列表",
+      "href": "/merchant/list"
+    },
+    {
+      "text": "✅ 资质审核",
+      "href": "/merchant/audit"
+    },
+    {
+      "text": "📋 业务复审",
+      "href": "/merchant/business-audit"
+    },
+    {
+      "text": "🔍 合规终审",
+      "href": "/merchant/compliance-audit"
+    },
+    {
+      "text": "📝 合同签署",
+      "href": "/merchant/contract-audit"
+    },
+    {
+      "text": "💳 支付进件",
+      "href": "/merchant/payment-audit"
+    },
+    {
+      "text": "📋 客户列表",
+      "href": "/customer/list"
+    },
+    {
+      "text": "🏷️ 客户标签",
+      "href": "/customer/tags"
+    },
+    {
+      "text": "📋 商品列表",
+      "href": "/product/list"
+    },
+    {
+      "text": "✅ 商品审核",
+      "href": "/product/audit"
+    },
+    {
+      "text": "📂 分类管理",
+      "href": "/product/category"
+    },
+    {
+      "text": "📦 库存管理",
+      "href": "/product/stock"
+    },
+    {
+      "text": "🎁 权益引入",
+      "href": "/product/benefit"
+    },
+    {
+      "text": "📋 订单列表",
+      "href": "/order/list"
+    },
+    {
+      "text": "💳 支付管理",
+      "href": "/order/pay"
+    },
+    {
+      "text": "💰 退款管理",
+      "href": "/order/refund"
+    },
+    {
+      "text": "⭐ 订单评价",
+      "href": "/order/evaluation"
+    },
+    {
+      "text": "📊 结算管理",
+      "href": "/finance/settlement"
+    },
+    {
+      "text": "📄 发票管理",
+      "href": "/finance/invoice"
+    },
+    {
+      "text": "🔍 对账管理",
+      "href": "/finance/reconciliation"
+    },
+    {
+      "text": "📋 规则管理",
+      "href": "/risk/rules"
+    },
+    {
+      "text": "🚨 风险告警",
+      "href": "/risk/alerts"
+    },
+    {
+      "text": "📈 交易监控",
+      "href": "/risk/monitor"
+    },
+    {
+      "text": "🤖 AI+应用",
+      "href": "/ai"
+    }
+  ],
+  "系统管理": [
+    {
+      "text": "🏠 首页",
+      "href": "/portal"
+    },
+    {
+      "text": "📋 商户列表",
+      "href": "/merchant/list"
+    },
+    {
+      "text": "✅ 资质审核",
+      "href": "/merchant/audit"
+    },
+    {
+      "text": "📋 业务复审",
+      "href": "/merchant/business-audit"
+    },
+    {
+      "text": "🔍 合规终审",
+      "href": "/merchant/compliance-audit"
+    },
+    {
+      "text": "📝 合同签署",
+      "href": "/merchant/contract-audit"
+    },
+    {
+      "text": "💳 支付进件",
+      "href": "/merchant/payment-audit"
+    },
+    {
+      "text": "📋 客户列表",
+      "href": "/customer/list"
+    },
+    {
+      "text": "🏷️ 客户标签",
+      "href": "/customer/tags"
+    },
+    {
+      "text": "📋 商品列表",
+      "href": "/product/list"
+    },
+    {
+      "text": "✅ 商品审核",
+      "href": "/product/audit"
+    },
+    {
+      "text": "📂 分类管理",
+      "href": "/product/category"
+    },
+    {
+      "text": "📦 库存管理",
+      "href": "/product/stock"
+    },
+    {
+      "text": "🎁 权益引入",
+      "href": "/product/benefit"
+    },
+    {
+      "text": "📋 订单列表",
+      "href": "/order/list"
+    },
+    {
+      "text": "💳 支付管理",
+      "href": "/order/pay"
+    },
+    {
+      "text": "💰 退款管理",
+      "href": "/order/refund"
+    },
+    {
+      "text": "⭐ 订单评价",
+      "href": "/order/evaluation"
+    },
+    {
+      "text": "📊 结算管理",
+      "href": "/finance/settlement"
+    },
+    {
+      "text": "📄 发票管理",
+      "href": "/finance/invoice"
+    },
+    {
+      "text": "🔍 对账管理",
+      "href": "/finance/reconciliation"
+    },
+    {
+      "text": "📋 规则管理",
+      "href": "/risk/rules"
+    },
+    {
+      "text": "🚨 风险告警",
+      "href": "/risk/alerts"
+    },
+    {
+      "text": "📈 交易监控",
+      "href": "/risk/monitor"
+    },
+    {
+      "text": "👥 用户管理",
+      "href": "/system/users"
+    },
+    {
+      "text": "🎭 角色管理",
+      "href": "/system/roles"
+    },
+    {
+      "text": "📑 菜单管理",
+      "href": "/system/menus"
+    },
+    {
+      "text": "🔗 接入平台",
+      "href": "/system/platforms"
+    },
+    {
+      "text": "🤖 AI+应用",
+      "href": "/ai"
+    }
+  ]
+}
