@@ -35,15 +35,18 @@ public interface ProductMapper {
     @Select("SELECT * FROM product WHERE status = 'ON_SHELF' ORDER BY create_time DESC LIMIT #{limit}")
     List<Product> findNewProducts(@Param("limit") int limit);
 
-    @Insert("INSERT INTO product (product_code, product_name, description, detail, category, category_id, brand, merchant_id, price, market_price, vip_price, stock, sales_count, avg_score, image_urls, status, reject_reason, ai_selling_point, ai_tag, spec, is_hot, is_new, is_recommend, sort_order, create_time, update_time) VALUES (#{productCode}, #{productName}, #{description}, #{detail}, #{category}, #{categoryId}, #{brand}, #{merchantId}, #{price}, #{marketPrice}, #{vipPrice}, #{stock}, #{salesCount}, #{avgScore}, #{imageUrls}, #{status}, #{rejectReason}, #{aiSellingPoint}, #{aiTag}, #{spec}, #{isHot}, #{isNew}, #{isRecommend}, #{sortOrder}, NOW(), NOW())")
+    @Insert("INSERT INTO product (product_code, product_name, product_type, description, detail, category, category_id, brand, merchant_id, merchant_name, price, market_price, vip_price, stock, sales_count, avg_score, image_urls, status, reject_reason, ai_selling_point, ai_tag, spec, is_hot, is_new, is_recommend, sort_order, create_time, update_time) VALUES (#{productCode}, #{productName}, #{productType}, #{description}, #{detail}, #{category}, #{categoryId}, #{brand}, #{merchantId}, #{merchantName}, #{price}, #{marketPrice}, #{vipPrice}, #{stock}, #{salesCount}, #{avgScore}, #{imageUrls}, #{status}, #{rejectReason}, #{aiSellingPoint}, #{aiTag}, #{spec}, #{isHot}, #{isNew}, #{isRecommend}, #{sortOrder}, NOW(), NOW())")
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Product product);
 
-    @Update("UPDATE product SET product_name=#{productName}, description=#{description}, detail=#{detail}, category=#{category}, category_id=#{categoryId}, brand=#{brand}, merchant_id=#{merchantId}, price=#{price}, market_price=#{marketPrice}, vip_price=#{vipPrice}, stock=#{stock}, sales_count=#{salesCount}, avg_score=#{avgScore}, image_urls=#{imageUrls}, status=#{status}, reject_reason=#{rejectReason}, approve_reason=#{approveReason}, auditor=#{auditor}, audit_time=#{auditTime}, update_time=NOW() WHERE id=#{id}")
+    @Update("UPDATE product SET product_name=#{productName}, description=#{description}, detail=#{detail}, category=#{category}, category_id=#{categoryId}, brand=#{brand}, merchant_id=#{merchantId}, merchant_name=#{merchantName}, price=#{price}, market_price=#{marketPrice}, vip_price=#{vipPrice}, stock=#{stock}, sales_count=#{salesCount}, avg_score=#{avgScore}, image_urls=#{imageUrls}, status=#{status}, reject_reason=#{rejectReason}, approve_reason=#{approveReason}, auditor=#{auditor}, audit_time=#{auditTime}, update_time=NOW() WHERE id=#{id}")
     int update(Product product);
 
     @Update("UPDATE product SET stock = stock + #{quantity}, update_time=NOW() WHERE id=#{id}")
     int updateStock(@Param("id") Long id, @Param("quantity") int quantity);
+
+    @Update("UPDATE product SET status=#{status}, update_time=NOW() WHERE id=#{id}")
+    int updateStatus(@Param("id") Long id, @Param("status") String status);
 
     @Update("UPDATE product SET status='DELETED', update_time=NOW() WHERE id=#{id}")
     int delete(@Param("id") Long id);

@@ -150,7 +150,7 @@
       <div class="card">
         <div class="card-header">
           <h3>数字权益引入六节点流程</h3>
-          <span class="tag tag-green">权益直连·自动分发</span>
+          <button class="btn btn-primary btn-sm" @click="showBenefitModal = true">+ 权益引入</button>
         </div>
         <div class="steps">
           <template v-for="(step, i) in benefitSteps" :key="step.num">
@@ -168,28 +168,140 @@
         <table class="data-table">
           <thead>
             <tr>
-              <th>权益编号</th><th>权益名称</th><th>类型</th><th>品牌</th><th>成本价</th><th>供货价</th><th>库存</th><th>状态</th><th>操作</th>
+              <th>权益编号</th><th>权益名称</th><th>类型</th><th>售价</th><th>面值</th><th>结算价</th><th>状态</th><th>操作</th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="b in benefits" :key="b.id">
-              <td>{{ b.code }}</td>
-              <td>{{ b.name }}</td>
-              <td><span class="tag tag-green">{{ b.type }}</span></td>
-              <td>{{ b.brand }}</td>
-              <td>¥{{ b.costPrice.toFixed(2) }}</td>
-              <td>¥{{ b.supplyPrice.toFixed(2) }}</td>
-              <td>{{ b.stock.toLocaleString() }}</td>
-              <td><span :class="b.status === '已上线' ? 'tag tag-green' : 'tag tag-orange'">{{ b.status }}</span></td>
+              <td>{{ b.benefitCode }}</td>
+              <td>{{ b.benefitName }}</td>
+              <td><span class="tag tag-green">{{ benefitTypeMap[b.benefitType] || b.benefitType }}</span></td>
+              <td>¥{{ (b.price || 0).toFixed(2) }}</td>
+              <td>¥{{ (b.faceValue || 0).toFixed(2) }}</td>
+              <td>¥{{ (b.settlePrice || 0).toFixed(2) }}</td>
+              <td><span :class="getBenefitStatusClass(b.status)">{{ getBenefitStatusText(b.status) }}</span></td>
               <td>
-                <button class="btn btn-sm btn-outline">查看</button>
-                <button class="btn btn-sm btn-primary">配置</button>
+                <button class="btn btn-sm btn-outline" @click="viewBenefit(b)">查看</button>
+                <button v-if="b.status === 'PENDING'" class="btn btn-sm btn-primary" @click="auditBenefit(b, 'APPROVED')">审核通过</button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
     </template>
+
+    <!-- 权益引入弹窗 -->
+    <div v-if="showBenefitModal" class="modal-overlay" @click.self="showBenefitModal = false">
+      <div class="modal" style="max-width: 650px;">
+        <div class="modal-header">
+          <h3>权益引入</h3>
+          <button class="modal-close" @click="showBenefitModal = false">×</button>
+        </div>
+        <div style="max-height:60vh;overflow-y:auto;padding:8px 0">
+          <div class="form-group">
+            <label>权益名称 *</label>
+            <input type="text" v-model="newBenefit.benefitName" placeholder="如：腾讯视频VIP月卡" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="form-group">
+              <label>权益类型 *</label>
+              <select v-model="newBenefit.benefitType">
+                <option value="MEMBERSHIP">会员权益</option>
+                <option value="COUPON">优惠券/代金券</option>
+                <option value="GAME_POINTS">游戏点卡</option>
+                <option value="DIGITAL_CONTENT">数字内容</option>
+                <option value="SERVICE">在线服务</option>
+                <option value="INSURANCE">保险/延保</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>兑换方式</label>
+              <select v-model="newBenefit.exchangeMethod">
+                <option value="AUTO_BIND">自动绑定账户</option>
+                <option value="CODE">兑换码</option>
+                <option value="QR_CODE">二维码核销</option>
+                <option value="MANUAL">人工发放</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+            <div class="form-group">
+              <label>面值/原价</label>
+              <input type="number" v-model.number="newBenefit.faceValue" placeholder="面值" />
+            </div>
+            <div class="form-group">
+              <label>售价 *</label>
+              <input type="number" v-model.number="newBenefit.price" placeholder="销售价格" />
+            </div>
+            <div class="form-group">
+              <label>结算价</label>
+              <input type="number" v-model.number="newBenefit.settlePrice" placeholder="结算价格" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>有效期类型</label>
+            <select v-model="newBenefit.validityType">
+              <option value="FIXED_DATE">固定日期</option>
+              <option value="DAYS_AFTER_RECEIVE">领取后N天有效</option>
+              <option value="DURATION">长期有效</option>
+            </select>
+          </div>
+          <div v-if="newBenefit.validityType === 'DAYS_AFTER_RECEIVE'" class="form-group">
+            <label>有效天数</label>
+            <input type="number" v-model.number="newBenefit.validityDays" placeholder="30" />
+          </div>
+          <div v-if="newBenefit.validityType === 'FIXED_DATE'" style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="form-group">
+              <label>有效期开始</label>
+              <input type="datetime-local" v-model="newBenefit.validityStart" />
+            </div>
+            <div class="form-group">
+              <label>有效期结束</label>
+              <input type="datetime-local" v-model="newBenefit.validityEnd" />
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+            <div class="form-group">
+              <label>总库存</label>
+              <input type="number" v-model.number="newBenefit.stockTotal" placeholder="0表示无限" />
+            </div>
+            <div class="form-group">
+              <label>每日限兑</label>
+              <input type="number" v-model.number="newBenefit.stockDailyLimit" placeholder="不限" />
+            </div>
+            <div class="form-group">
+              <label>每人限兑</label>
+              <input type="number" v-model.number="newBenefit.stockPerUser" placeholder="不限" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label>使用规则</label>
+            <textarea v-model="newBenefit.usageRules" rows="2" placeholder="如：不可与其他优惠叠加、仅限指定平台使用"></textarea>
+          </div>
+          <div class="form-group">
+            <label>适用范围</label>
+            <input type="text" v-model="newBenefit.applicableScope" placeholder="如：全平台通用" />
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div class="form-group">
+              <label>供应商</label>
+              <input type="text" v-model="newBenefit.supplierName" placeholder="供应商名称" />
+            </div>
+            <div class="form-group">
+              <label>退款政策</label>
+              <select v-model="newBenefit.refundPolicy">
+                <option value="NO_REFUND">不可退款</option>
+                <option value="CONDITIONAL">有条件退款</option>
+                <option value="FULL_REFUND">支持退款</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-primary" @click="submitBenefit">提交权益引入</button>
+        </div>
+      </div>
+    </div>
 
     <!-- 新增商户弹窗 -->
     <div v-if="showMerchantModal" class="modal-overlay" @click.self="showMerchantModal = false">
@@ -228,6 +340,18 @@
               <label>联系电话</label>
               <input type="text" v-model="newMerchant.contactPhone" placeholder="请输入联系电话" />
             </div>
+          </div>
+          <div class="form-group" style="background:#f0f9ff;padding:12px;border-radius:6px;border:1px solid #bae6fd;margin-top:12px">
+            <label style="color:#0369a1">🤖 AI智能识别 - 上传营业执照自动填充</label>
+            <div style="display:flex;gap:8px;margin-top:6px">
+              <input type="file" ref="ocrFileInput" accept="image/*" style="flex:1" />
+              <button type="button" class="btn btn-primary btn-sm" @click="doOcr" style="white-space:nowrap">开始识别</button>
+            </div>
+            <div v-if="ocrResult" style="margin-top:8px;font-size:12px;color:#0369a1">
+              识别置信度：{{ ocrResult.score }}%
+              <button type="button" class="btn btn-sm btn-success" style="margin-left:8px" @click="applyOcrResult">自动填充</button>
+            </div>
+            <div v-if="ocrError" style="color:#f56c6c;font-size:12px;margin-top:4px">{{ ocrError }}</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -298,6 +422,10 @@ import { ref, onMounted } from 'vue'
 const tab = ref('merchant')
 const showMerchantModal = ref(false)
 const showProductModal = ref(false)
+const showBenefitModal = ref(false)
+const ocrFileInput = ref(null)
+const ocrResult = ref(null)
+const ocrError = ref('')
 
 const merchantSteps = [
   { num: 1, name: '商户申请', status: 'done' },
@@ -343,6 +471,18 @@ const newProduct = ref({
   merchantId: 3, productName: '', brand: '', category: '视频娱乐', price: 0, marketPrice: 0, stock: 0
 })
 
+const newBenefit = ref({
+  benefitName: '', benefitType: 'MEMBERSHIP', faceValue: 0, price: 0, settlePrice: 0,
+  validityType: 'DAYS_AFTER_RECEIVE', validityStart: '', validityEnd: '', validityDays: 30,
+  exchangeMethod: 'AUTO_BIND', stockTotal: 0, stockDailyLimit: 0, stockPerUser: 0,
+  usageRules: '', applicableScope: '', supplierName: '', refundPolicy: 'NO_REFUND'
+})
+
+const benefitTypeMap = {
+  'MEMBERSHIP': '会员权益', 'COUPON': '优惠券', 'GAME_POINTS': '游戏点卡',
+  'DIGITAL_CONTENT': '数字内容', 'SERVICE': '在线服务', 'INSURANCE': '保险/延保'
+}
+
 onMounted(async () => {
   try {
     const res = await fetch('http://localhost:8081/api/admin/merchants?page=0&size=20')
@@ -357,6 +497,12 @@ onMounted(async () => {
     const productData = await productRes.json()
     if (productData.code === 200) {
       products.value = productData.data || []
+    }
+    // 加载权益列表
+    const benefitRes = await fetch('http://localhost:8081/api/benefit')
+    const benefitData = await benefitRes.json()
+    if (benefitData.code === 200) {
+      benefits.value = benefitData.data || []
     }
   } catch (e) {
     console.error('获取入驻数据失败', e)
@@ -468,6 +614,89 @@ const submitProduct = async () => {
     alert('引入提交成功！')
     showProductModal.value = false
   }
+}
+
+const getBenefitStatusClass = (status) => {
+  if (status === 'ON_SHELF') return 'tag tag-green'
+  if (status === 'PENDING') return 'tag tag-orange'
+  return 'tag tag-gray'
+}
+
+const getBenefitStatusText = (status) => {
+  const map = { 'PENDING': '待审核', 'ON_SHELF': '已上线', 'OFF_SHELF': '已下架', 'REJECTED': '已驳回' }
+  return map[status] || status
+}
+
+const viewBenefit = (b) => {
+  alert(`权益详情：${b.benefitName}\n类型：${benefitTypeMap[b.benefitType]}\n售价：¥${b.price}\n库存：${b.stockTotal}`)
+}
+
+const auditBenefit = async (b, action) => {
+  try {
+    const res = await fetch(`http://localhost:8081/api/benefit/${b.id}/audit?action=${action}`, {
+      method: 'PUT'
+    })
+    const data = await res.json()
+    if (data.code === 200) {
+      b.status = action === 'APPROVED' ? 'ON_SHELF' : 'REJECTED'
+      alert('审核完成')
+    }
+  } catch (e) {
+    alert('审核失败')
+  }
+}
+
+const submitBenefit = async () => {
+  if (!newBenefit.value.benefitName) { alert('请输入权益名称'); return }
+  try {
+    const res = await fetch('http://localhost:8081/api/benefit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...newBenefit.value, merchantId: 2 })
+    })
+    const data = await res.json()
+    if (data.code === 200) {
+      alert('权益引入提交成功！')
+      showBenefitModal.value = false
+      // 刷新列表
+      const benefitRes = await fetch('http://localhost:8081/api/benefit')
+      const benefitData = await benefitRes.json()
+      if (benefitData.code === 200) benefits.value = benefitData.data || []
+    }
+  } catch (e) {
+    benefits.value.push({
+      id: Date.now(),
+      benefitCode: 'BFT' + Date.now(),
+      ...newBenefit.value,
+      status: 'PENDING'
+    })
+    alert('权益引入提交成功！')
+    showBenefitModal.value = false
+  }
+}
+
+// OCR 识别
+const doOcr = async () => {
+  ocrError.value = ''
+  ocrResult.value = null
+  try {
+    const res = await fetch('http://localhost:8081/api/ai/ocr/quick', { method: 'POST' })
+    const data = await res.json()
+    if (data.code === 200) {
+      ocrResult.value = data.data
+    }
+  } catch (e) {
+    ocrError.value = '识别失败，请重试'
+  }
+}
+
+const applyOcrResult = () => {
+  if (!ocrResult.value) return
+  newMerchant.value.merchantName = ocrResult.value.companyName || newMerchant.value.merchantName
+  newMerchant.value.creditCode = ocrResult.value.creditCode || newMerchant.value.creditCode
+  newMerchant.value.legalPerson = ocrResult.value.legalPerson || newMerchant.value.legalPerson
+  ocrResult.value = null
+  alert('已自动填充企业信息')
 }
 </script>
 

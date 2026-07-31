@@ -101,7 +101,8 @@ public class DataInitializer implements CommandLineRunner {
     private void initMenus() {
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_menu", Integer.class);
         if (count != null && count > 0) {
-            // 已有数据，只检查并补充缺失的"商品审核"菜单
+            // 已有数据，只检查并补充缺失的菜单
+            // 检查缺失的"商品审核"菜单
             Integer auditCount = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND path = ?",
                     Integer.class, "商品审核", "/product/audit");
@@ -114,6 +115,22 @@ public class DataInitializer implements CommandLineRunner {
                             "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                             parentId, "商品审核", "MENU", "/product/audit", "✅", 2, 1, 0, "ACTIVE");
                     log.info("已补充缺失的「商品审核」菜单");
+                }
+            }
+
+            // 检查缺失的"模型配置"菜单
+            Integer aiConfigCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND path = ?",
+                    Integer.class, "模型配置", "/ai/config");
+            if (aiConfigCount != null && aiConfigCount == 0) {
+                Long aiParentId = jdbcTemplate.queryForObject(
+                        "SELECT id FROM sys_menu WHERE menu_name = ? AND (parent_id = 0 OR parent_id IS NULL) LIMIT 1",
+                        Long.class, "AI+应用");
+                if (aiParentId != null) {
+                    jdbcTemplate.update(
+                            "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            aiParentId, "模型配置", "MENU", "/ai/config", "⚙️", 1, 1, 0, "ACTIVE");
+                    log.info("已补充缺失的「模型配置」菜单");
                 }
             }
             return;
@@ -178,6 +195,9 @@ public class DataInitializer implements CommandLineRunner {
         // C端配置子菜单
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (39, 9, '轮播图管理', 'MENU', '/cconfig/banners', '🎠', 1, 1, 0, 'ACTIVE')");
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (40, 9, '首页配置', 'MENU', '/cconfig/home', '🏠', 2, 1, 0, 'ACTIVE')");
+
+        // AI+应用子菜单
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (41, 10, '模型配置', 'MENU', '/ai/config', '⚙️', 1, 1, 0, 'ACTIVE')");
         log.info("菜单数据初始化完成");
     }
 
@@ -204,6 +224,28 @@ public class DataInitializer implements CommandLineRunner {
                                 roleId, menuId);
                     }
                     log.info("已为管理员角色授权「商品审核」菜单");
+                }
+            }
+
+            // 检查模型配置是否关联了管理员角色
+            Integer aiConfigMenuCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_role_menu rm " +
+                    "JOIN sys_menu m ON rm.menu_id = m.id " +
+                    "WHERE m.menu_name = ? AND m.path = ?",
+                    Integer.class, "模型配置", "/ai/config");
+            if (aiConfigMenuCount == null || aiConfigMenuCount == 0) {
+                Long menuId = jdbcTemplate.queryForObject(
+                        "SELECT id FROM sys_menu WHERE menu_name = ? AND path = ? LIMIT 1",
+                        Long.class, "模型配置", "/ai/config");
+                List<Long> roleIds = jdbcTemplate.queryForList(
+                        "SELECT id FROM sys_role WHERE role_code = 'SUPER_ADMIN'", Long.class);
+                if (menuId != null && !roleIds.isEmpty()) {
+                    for (Long roleId : roleIds) {
+                        jdbcTemplate.update(
+                                "INSERT INTO sys_role_menu (role_id, menu_id) VALUES (?, ?)",
+                                roleId, menuId);
+                    }
+                    log.info("已为管理员角色授权「模型配置」菜单");
                 }
             }
             return;

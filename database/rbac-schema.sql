@@ -106,6 +106,10 @@ INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, component, permissi
 (2, '合同签署', 'MENU', '/merchant/contract-audit', '../views/onboarding/ContractAudit.vue', 'merchant:contract-audit', '📝', 5, 1, 0, 'ACTIVE'),
 (2, '支付进件', 'MENU', '/merchant/payment-audit', '../views/onboarding/PaymentAudit.vue', 'merchant:payment-audit', '💳', 6, 1, 0, 'ACTIVE');
 
+-- AI+应用子菜单
+INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, component, permission, icon, sort_order, visible, keep_alive, status) VALUES
+(10, '模型配置', 'MENU', '/ai/config', '../views/ai/AIConfig.vue', 'ai:config', '⚙️', 1, 1, 0, 'ACTIVE');
+
 -- 客户管理子菜单
 (3, '客户列表', 'MENU', '/customer/list', '../views/system/UserManage.vue', 'customer:list', '📋', 1, 1, 0, 'ACTIVE'),
 (3, '客户标签', 'MENU', '/customer/tags', '../views/system/UserManage.vue', 'customer:tags', '🏷️', 2, 1, 0, 'ACTIVE'),

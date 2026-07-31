@@ -131,6 +131,7 @@ public class CMallController {
             item.put("brand", p.getBrand());
             item.put("salesCount", p.getSalesCount());
             item.put("stock", p.getStock());
+            item.put("productType", p.getProductType());
             return item;
         }).collect(Collectors.toList());
 
@@ -640,6 +641,7 @@ public class CMallController {
                 good.put("desc", p.getDescription());
                 good.put("price", p.getPrice());
                 good.put("picture", Collections.singletonList(firstImageUrl(p.getImageUrls())));
+                good.put("productType", p.getProductType());
                 goods.add(good);
             }
             category.put("goods", goods);
@@ -679,7 +681,8 @@ public class CMallController {
             item.put("price", p.getPrice());
             item.put("title", p.getProductName());
             item.put("alt", p.getDescription());
-            result.add(item);
+        item.put("productType", p.getProductType());
+        result.add(item);
         }
         return result;
     }

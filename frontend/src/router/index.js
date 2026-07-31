@@ -45,6 +45,7 @@ const routes = [
   
   { path: '/order/evaluation', name: 'Evaluation', component: () => import('../views/service/Index.vue'), meta: { title: '订单评价', icon: '⭐', parent: 'Order' } },
   { path: '/ai', name: 'AI', component: () => import('../views/ai/Index.vue'), meta: { title: 'AI+应用', icon: '🤖' } },
+  { path: '/ai/config', name: 'AIConfig', component: () => import('../views/ai/AIConfig.vue'), meta: { title: '模型配置', icon: '⚙️', parent: 'AI' } },
   { path: '/system', name: 'System', component: () => import('../views/static/System.vue'), meta: { title: '系统管理', icon: '⚙️' } },
   { path: '/system/users', name: 'UserManage', component: () => import('../views/system/UserManage.vue'), meta: { title: '用户管理', icon: '👥', parent: 'System' } },
   { path: '/system/roles', name: 'RoleManage', component: () => import('../views/system/RoleManage.vue'), meta: { title: '角色管理', icon: '🎭', parent: 'System' } },

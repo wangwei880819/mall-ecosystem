@@ -181,7 +181,9 @@ const loadFallbackMenus = () => {
       { id: 30, name: '菜单管理', path: '/system/menus', icon: '📑', type: 'MENU', children: [] },
       { id: 31, name: '接入平台', path: '/system/platforms', icon: '🔗', type: 'MENU', children: [] }
     ]},
-    { id: 10, name: 'AI+应用', path: '/ai', icon: '🤖', type: 'DIRECTORY', children: [] }
+    { id: 10, name: 'AI+应用', path: '/ai', icon: '🤖', type: 'DIRECTORY', children: [
+      { id: 40, name: '模型配置', path: '/ai/config', icon: '⚙️', type: 'MENU', children: [] }
+    ]}
   ]
   
   dynamicMenus.value.forEach(menu => {

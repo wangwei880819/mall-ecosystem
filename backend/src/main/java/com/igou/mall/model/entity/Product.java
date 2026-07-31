@@ -7,10 +7,12 @@ public class Product {
     private Long id;
     private String productCode;
     private String productName;
+    private String productType;        // 商品类型: PHYSICAL/VIRTUAL/BENEFIT
     private Long categoryId;
     private String category;
     private String brand;
     private Long merchantId;
+    private String merchantName;
     private BigDecimal price;
     private BigDecimal marketPrice;
     private BigDecimal vipPrice;
@@ -44,6 +46,8 @@ public class Product {
     public void setProductCode(String productCode) { this.productCode = productCode; }
     public String getProductName() { return productName; }
     public void setProductName(String productName) { this.productName = productName; }
+    public String getProductType() { return productType; }
+    public void setProductType(String productType) { this.productType = productType; }
     public Long getCategoryId() { return categoryId; }
     public void setCategoryId(Long categoryId) { this.categoryId = categoryId; }
     public String getCategory() { return category; }
@@ -52,6 +56,8 @@ public class Product {
     public void setBrand(String brand) { this.brand = brand; }
     public Long getMerchantId() { return merchantId; }
     public void setMerchantId(Long merchantId) { this.merchantId = merchantId; }
+    public String getMerchantName() { return merchantName; }
+    public void setMerchantName(String merchantName) { this.merchantName = merchantName; }
     public BigDecimal getPrice() { return price; }
     public void setPrice(BigDecimal price) { this.price = price; }
     public BigDecimal getMarketPrice() { return marketPrice; }

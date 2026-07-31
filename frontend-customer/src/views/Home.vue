@@ -258,7 +258,10 @@ onMounted(async () => {
               </div>
             </div>
             <div class="product-info">
-              <p class="product-name">{{ product.name }}</p>
+              <p class="product-name">
+              <span v-if="product.productType && product.productType !== 'PHYSICAL'" class="product-type-tag">{{ product.productType === 'BENEFIT' ? '权益' : '虚拟' }}</span>
+              {{ product.name }}
+            </p>
               <div class="product-bottom">
                 <span class="product-price">¥{{ product.price }}</span>
                 <span class="product-sales" v-if="product.salesCount">已售{{ product.salesCount }}</span>
@@ -554,6 +557,18 @@ onMounted(async () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.product-type-tag {
+  display: inline-block;
+  padding: 0 4px;
+  font-size: 10px;
+  color: #fff;
+  background: #67c23a;
+  border-radius: 2px;
+  margin-right: 4px;
+  line-height: 16px;
+  vertical-align: middle;
 }
 
 .product-bottom {

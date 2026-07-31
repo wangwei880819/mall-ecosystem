@@ -27,7 +27,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick } from 'vue'
+import { ref, onMounted, nextTick, watch } from 'vue'
 
 const props = defineProps({
   modelValue: { type: String, default: '' }
@@ -41,6 +41,13 @@ let isInternalUpdate = false
 onMounted(() => {
   if (editor.value && props.modelValue) {
     editor.value.innerHTML = props.modelValue
+  }
+})
+
+// 监听外部值变化，自动同步到编辑器（如AI回填场景）
+watch(() => props.modelValue, (newVal) => {
+  if (editor.value && !isInternalUpdate && editor.value.innerHTML !== (newVal || '')) {
+    editor.value.innerHTML = newVal || ''
   }
 })
 

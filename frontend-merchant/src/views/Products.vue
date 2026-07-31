@@ -8,6 +8,10 @@ import RichTextEditor from '@/components/RichTextEditor.vue'
 
 const merchantStore = useMerchantStore()
 const merchantId = computed(() => merchantStore.merchantInfo?.merchant?.id || '')
+const selectedCategoryName = computed(() => {
+  const cat = categories.value.find(c => (c.id || c.categoryId) === productForm.value.categoryId)
+  return cat ? (cat.categoryName || cat.name || '') : ''
+})
 const products = ref([])
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -35,6 +39,34 @@ const productForm = ref({
 
 const categories = ref([])
 const imageFiles = ref([])
+
+// 权益引入相关
+const benefitDialogVisible = ref(false)
+const benefitTab = ref('basic')
+const benefitSubmitting = ref(false)
+const benefitImageFiles = ref([])
+const benefitForm = ref({
+  benefitName: '',
+  benefitType: 'MEMBERSHIP',
+  faceValue: 0,
+  price: 0,
+  settlePrice: 0,
+  validityType: 'DAYS_AFTER_RECEIVE',
+  validityStart: '',
+  validityEnd: '',
+  validityDays: 30,
+  usageRules: '',
+  applicableScope: '',
+  exchangeMethod: 'AUTO_BIND',
+  stockTotal: 0,
+  stockDailyLimit: 0,
+  stockPerUser: 0,
+  supplierName: '',
+  supplierContact: '',
+  refundPolicy: 'NO_REFUND',
+  imageUrl: '',
+  detailDesc: ''
+})
 
 // 状态映射
 const statusMap = {
@@ -177,6 +209,84 @@ async function handleCreate() {
   }
 }
 
+// ==================== AI校对 ====================
+const proofreading = ref(false)
+const showProofreadDialog = ref(false)
+const proofreadResult = ref(null)
+const proofreadTarget = ref('detail')
+
+const doProofread = async (target = 'detail') => {
+  proofreadTarget.value = target
+  const content = target === 'description' ? productForm.value.description : productForm.value.detail
+  if (!content) { ElMessage.warning(target === 'description' ? '请输入商品描述内容' : '请输入商品详情内容'); return }
+  proofreading.value = true
+  try {
+    // http.js 成功时返回 body.data（已解包），失败时 reject body
+    const data = await http.post('/ai/proofread', { content })
+    const raw = data?.raw || ''
+    try {
+      proofreadResult.value = JSON.parse(raw.replace(/```json\s*|```/g, '').trim())
+    } catch {
+      proofreadResult.value = { optimizedContent: raw, issues: [], summary: '' }
+    }
+    showProofreadDialog.value = true
+  } catch (e) {
+    // http.js reject 返回的就是 { code, message } 对象
+    ElMessage.error(e?.message || e?.msg || '校对失败')
+  } finally {
+    proofreading.value = false
+  }
+}
+
+const fillProofreadResult = () => {
+  if (proofreadResult.value?.optimizedContent) {
+    if (proofreadTarget.value === 'description') {
+      productForm.value.description = proofreadResult.value.optimizedContent
+    } else {
+      productForm.value.detail = proofreadResult.value.optimizedContent
+    }
+    showProofreadDialog.value = false
+    ElMessage.success('已回填到' + (proofreadTarget.value === 'description' ? '商品描述' : '商品详情'))
+  }
+}
+
+// ==================== 价格摸排 ====================
+const priceResearching = ref(false)
+const showPriceResearchDialog = ref(false)
+const priceResearchResult = ref(null)
+
+const doPriceResearch = async () => {
+  if (!productForm.value.price || productForm.value.price <= 0) {
+    ElMessage.warning('请先输入售价')
+    return
+  }
+  priceResearching.value = true
+  try {
+    // http.js 成功时返回 body.data（已解包），直接就是 AiPriceResearchResult 对象
+    const data = await http.post('/ai/price-research', {
+      price: productForm.value.price,
+      productName: productForm.value.productName,
+      category: selectedCategoryName.value
+    })
+    priceResearchResult.value = data
+    showPriceResearchDialog.value = true
+  } catch (e) {
+    ElMessage.error(e?.message || e?.msg || '价格摸排失败')
+  } finally {
+    priceResearching.value = false
+  }
+}
+
+const applySuggestedPrice = () => {
+  if (priceResearchResult.value?.suggestedPrice) {
+    productForm.value.price = priceResearchResult.value.suggestedPrice
+    showPriceResearchDialog.value = false
+    ElMessage.success('已套用建议售价 ¥' + priceResearchResult.value.suggestedPrice.toFixed(2))
+  }
+}
+
+// ==================== 权益引入 ====================
+
 function openViewDialog(product) {
   viewProduct.value = product
   viewDialogVisible.value = true
@@ -188,6 +298,93 @@ function getFirstImage(product) {
     return urls[0] || ''
   }
   return ''
+}
+
+function showBenefitDialog() {
+  // 自动从登录商户信息填充供应商字段
+  const info = merchantStore.merchantInfo
+  const merchant = info?.merchant || info || {}
+  const merchantName = merchant.merchantName || merchant.name || ''
+  const merchantPhone = merchant.contactPhone || merchant.phone || ''
+  const merchantEmail = merchant.email || ''
+  const contactInfo = [merchantPhone, merchantEmail].filter(Boolean).join(' / ')
+  
+  benefitForm.value = {
+    benefitName: '',
+    benefitType: 'MEMBERSHIP',
+    faceValue: 0,
+    price: 0,
+    settlePrice: 0,
+    validityType: 'DAYS_AFTER_RECEIVE',
+    validityStart: '',
+    validityEnd: '',
+    validityDays: 30,
+    usageRules: '',
+    applicableScope: '',
+    exchangeMethod: 'AUTO_BIND',
+    stockTotal: 0,
+    stockDailyLimit: 0,
+    stockPerUser: 0,
+    supplierName: merchantName,
+    supplierContact: contactInfo,
+    refundPolicy: 'NO_REFUND',
+    imageUrl: '',
+    detailDesc: ''
+  }
+  benefitImageFiles.value = []
+  benefitTab.value = 'basic'
+  benefitDialogVisible.value = true
+}
+
+function onBenefitValidityTypeChange() {
+  // 切换有效期类型时清空相关字段
+  if (benefitForm.value.validityType !== 'FIXED_DATE') {
+    benefitForm.value.validityStart = ''
+    benefitForm.value.validityEnd = ''
+  }
+  if (benefitForm.value.validityType !== 'DAYS_AFTER_RECEIVE') {
+    benefitForm.value.validityDays = 30
+  }
+}
+
+function handleBenefitImageSuccess(response, file, fileList) {
+  if (response && response.code === 200) {
+    benefitForm.value.imageUrl = response.data
+    benefitImageFiles.value = [{ uid: Date.now(), name: '封面图', url: response.data }]
+  }
+}
+
+function handleBenefitImageRemove(file, fileList) {
+  benefitForm.value.imageUrl = ''
+  benefitImageFiles.value = []
+}
+
+async function handleBenefitCreate() {
+  if (!benefitForm.value.benefitName) { ElMessage.warning('请输入权益名称'); return }
+  if (!benefitForm.value.benefitType) { ElMessage.warning('请选择权益类型'); return }
+  if (!benefitForm.value.price) { ElMessage.warning('请输入售价'); return }
+
+  benefitSubmitting.value = true
+  try {
+    await http.post('/benefit', {
+      ...benefitForm.value,
+      merchantId: merchantId.value,
+      price: parseFloat(benefitForm.value.price) || 0,
+      faceValue: parseFloat(benefitForm.value.faceValue) || 0,
+      settlePrice: parseFloat(benefitForm.value.settlePrice) || 0,
+      stockTotal: parseInt(benefitForm.value.stockTotal) || 0,
+      stockDailyLimit: parseInt(benefitForm.value.stockDailyLimit) || 0,
+      stockPerUser: parseInt(benefitForm.value.stockPerUser) || 0,
+      validityDays: parseInt(benefitForm.value.validityDays) || 0
+    })
+    ElMessage.success('权益入驻申请已提交，请等待审核')
+    benefitDialogVisible.value = false
+  } catch (error) {
+    const msg = error?.response?.data?.message || error?.message || '提交失败'
+    ElMessage.error(msg)
+  } finally {
+    benefitSubmitting.value = false
+  }
 }
 
 function formatTime(time) {
@@ -204,10 +401,16 @@ function formatTime(time) {
         <h2>我的商品</h2>
         <p class="page-subtitle">管理您的商品列表，提交新品入驻申请</p>
       </div>
-      <el-button type="primary" size="large" @click="showCreateDialog">
-        <el-icon style="margin-right:6px"><Plus /></el-icon>
-        申请商品入驻
-      </el-button>
+      <div style="display:flex;gap:12px">
+        <el-button type="primary" size="large" @click="showCreateDialog">
+          <el-icon style="margin-right:6px"><Plus /></el-icon>
+          申请商品入驻
+        </el-button>
+        <el-button type="success" size="large" @click="showBenefitDialog">
+          <el-icon style="margin-right:6px"><Plus /></el-icon>
+          权益引入
+        </el-button>
+      </div>
     </div>
 
     <!-- 筛选栏 -->
@@ -317,7 +520,6 @@ function formatTime(time) {
                 <el-select v-model="productForm.productType" style="width:100%">
                   <el-option label="实物商品" value="PHYSICAL" />
                   <el-option label="虚拟商品" value="VIRTUAL" />
-                  <el-option label="数字权益" value="DIGITAL" />
                 </el-select>
               </el-form-item>
             </el-col>
@@ -329,6 +531,7 @@ function formatTime(time) {
           </el-row>
           <el-form-item label="商品描述">
             <el-input v-model="productForm.description" type="textarea" :rows="3" placeholder="请输入商品描述，介绍商品核心卖点和特点" maxlength="200" show-word-limit />
+            <el-button type="warning" size="small" style="margin-top:4px" :loading="proofreading" @click="doProofread('description')">🤖 AI校对</el-button>
           </el-form-item>
 
           <div class="form-nav">
@@ -342,7 +545,8 @@ function formatTime(time) {
           <el-row :gutter="16">
             <el-col :span="8">
               <el-form-item label="售价" required>
-                <el-input-number v-model="productForm.price" :min="0" :precision="2" style="width:100%" placeholder="0.00" />
+                <el-input-number v-model="productForm.price" :min="0" :precision="2" style="width:140px" placeholder="0.00" />
+                <el-button type="warning" size="small" style="margin-left:8px" :loading="priceResearching" @click="doPriceResearch">💹 价格摸排</el-button>
               </el-form-item>
             </el-col>
             <el-col :span="8">
@@ -400,6 +604,7 @@ function formatTime(time) {
           <div class="section-title">商品详情</div>
           <el-form-item label="商品详情">
             <RichTextEditor v-model="productForm.detail" />
+            <el-button type="warning" size="small" style="margin-top:8px" :loading="proofreading" @click="doProofread('detail')">🤖 AI校对</el-button>
           </el-form-item>
 
           <div class="form-nav">
@@ -443,6 +648,284 @@ function formatTime(time) {
             <template #default>{{ viewProduct.rejectReason }}</template>
           </el-alert>
         </div>
+      </template>
+    </el-dialog>
+
+    <!-- 权益引入弹窗 -->
+    <el-dialog v-model="benefitDialogVisible" title="权益引入" width="750px" :close-on-click-modal="false" destroy-on-close>
+      <div class="form-steps">
+        <div class="step-item" :class="{ active: benefitTab === 'basic' }" @click="benefitTab = 'basic'">
+          <span class="step-num">1</span>
+          <span class="step-text">基本信息</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item" :class="{ active: benefitTab === 'rule' }" @click="benefitTab = 'rule'">
+          <span class="step-num">2</span>
+          <span class="step-text">规则配置</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="step-item" :class="{ active: benefitTab === 'stock' }" @click="benefitTab = 'stock'">
+          <span class="step-num">3</span>
+          <span class="step-text">库存信息</span>
+        </div>
+      </div>
+
+      <el-form :model="benefitForm" label-width="100px" class="product-form">
+        <!-- 第一步：基本信息 -->
+        <div v-show="benefitTab === 'basic'" class="form-section">
+          <div class="section-title">权益基本信息</div>
+          <el-form-item label="权益名称" required>
+            <el-input v-model="benefitForm.benefitName" placeholder="请输入权益名称，如：腾讯视频VIP月卡" maxlength="50" show-word-limit />
+          </el-form-item>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="权益类型" required>
+                <el-select v-model="benefitForm.benefitType" style="width:100%">
+                  <el-option label="会员权益" value="MEMBERSHIP" />
+                  <el-option label="优惠券/代金券" value="COUPON" />
+                  <el-option label="游戏点卡" value="GAME_POINTS" />
+                  <el-option label="数字内容" value="DIGITAL_CONTENT" />
+                  <el-option label="在线服务" value="SERVICE" />
+                  <el-option label="保险/延保" value="INSURANCE" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="面值/原价">
+                <el-input-number v-model="benefitForm.faceValue" :min="0" :precision="2" style="width:100%" placeholder="权益面值" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="售价" required>
+                <el-input-number v-model="benefitForm.price" :min="0" :precision="2" style="width:100%" placeholder="实际销售价格" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="结算价">
+                <el-input-number v-model="benefitForm.settlePrice" :min="0" :precision="2" style="width:100%" placeholder="与供应商结算价" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="权益描述">
+            <el-input v-model="benefitForm.detailDesc" type="textarea" :rows="3" placeholder="请描述权益的核心内容和价值" maxlength="200" show-word-limit />
+          </el-form-item>
+          <el-form-item label="封面图片">
+            <el-upload
+              action="/api/product/upload"
+              list-type="picture-card"
+              :file-list="benefitImageFiles"
+              :on-success="handleBenefitImageSuccess"
+              :on-remove="handleBenefitImageRemove"
+              :limit="1"
+            >
+              <div>
+                <el-icon><Plus /></el-icon>
+                <div style="margin-top:6px;font-size:12px">上传</div>
+              </div>
+            </el-upload>
+          </el-form-item>
+          <div class="form-nav">
+            <el-button type="primary" @click="benefitTab = 'rule'">下一步：规则配置</el-button>
+          </div>
+        </div>
+
+        <!-- 第二步：规则配置 -->
+        <div v-show="benefitTab === 'rule'" class="form-section">
+          <div class="section-title">使用规则与有效期</div>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="有效期类型" required>
+                <el-select v-model="benefitForm.validityType" style="width:100%" @change="onBenefitValidityTypeChange">
+                  <el-option label="固定日期" value="FIXED_DATE" />
+                  <el-option label="领取后N天有效" value="DAYS_AFTER_RECEIVE" />
+                  <el-option label="长期有效" value="DURATION" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item v-if="benefitForm.validityType === 'DAYS_AFTER_RECEIVE'" label="有效天数">
+                <el-input-number v-model="benefitForm.validityDays" :min="1" style="width:100%" placeholder="领取后有效天数" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row v-if="benefitForm.validityType === 'FIXED_DATE'" :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="有效期开始">
+                <el-date-picker v-model="benefitForm.validityStart" type="datetime" placeholder="选择开始时间" style="width:100%" value-format="YYYY-MM-DD HH:mm:ss" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="有效期结束">
+                <el-date-picker v-model="benefitForm.validityEnd" type="datetime" placeholder="选择结束时间" style="width:100%" value-format="YYYY-MM-DD HH:mm:ss" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-row :gutter="16">
+            <el-col :span="12">
+              <el-form-item label="兑换方式" required>
+                <el-select v-model="benefitForm.exchangeMethod" style="width:100%">
+                  <el-option label="自动绑定账户" value="AUTO_BIND" />
+                  <el-option label="兑换码" value="CODE" />
+                  <el-option label="二维码核销" value="QR_CODE" />
+                  <el-option label="人工发放" value="MANUAL" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="退款政策">
+                <el-select v-model="benefitForm.refundPolicy" style="width:100%">
+                  <el-option label="不可退款" value="NO_REFUND" />
+                  <el-option label="有条件退款" value="CONDITIONAL" />
+                  <el-option label="支持退款" value="FULL_REFUND" />
+                </el-select>
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <el-form-item label="使用规则">
+            <el-input v-model="benefitForm.usageRules" type="textarea" :rows="3" placeholder="如：不可与其他优惠叠加、仅限指定平台使用等" maxlength="500" show-word-limit />
+          </el-form-item>
+          <el-form-item label="适用范围">
+            <el-input v-model="benefitForm.applicableScope" type="textarea" :rows="2" placeholder="如：全平台通用 / 仅限XX平台 / 仅限指定品类" maxlength="200" show-word-limit />
+          </el-form-item>
+
+          <div class="form-nav">
+            <el-button @click="benefitTab = 'basic'">上一步</el-button>
+            <el-button type="primary" @click="benefitTab = 'stock'">下一步：库存信息</el-button>
+          </div>
+        </div>
+
+        <!-- 第三步：库存信息 -->
+        <div v-show="benefitTab === 'stock'" class="form-section">
+          <div class="section-title">库存与供应商信息</div>
+          <el-row :gutter="16">
+            <el-col :span="8">
+              <el-form-item label="总库存" required>
+                <el-input-number v-model="benefitForm.stockTotal" :min="0" style="width:100%" placeholder="0" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="每日限兑">
+                <el-input-number v-model="benefitForm.stockDailyLimit" :min="0" style="width:100%" placeholder="不限" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="8">
+              <el-form-item label="每人限兑">
+                <el-input-number v-model="benefitForm.stockPerUser" :min="0" style="width:100%" placeholder="不限" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+          <div class="price-tips">
+            <el-alert type="info" :closable="false" show-icon>
+              <template #title>
+                每日限兑和每人限兑设为0表示不限制；总库存为0表示无限库存
+              </template>
+            </el-alert>
+          </div>
+          <el-row :gutter="16" style="margin-top:16px">
+            <el-col :span="12">
+              <el-form-item label="供应商名称">
+                <el-input v-model="benefitForm.supplierName" placeholder="请输入供应商名称" />
+              </el-form-item>
+            </el-col>
+            <el-col :span="12">
+              <el-form-item label="联系方式">
+                <el-input v-model="benefitForm.supplierContact" placeholder="供应商电话/邮箱" />
+              </el-form-item>
+            </el-col>
+          </el-row>
+
+          <div class="form-nav">
+            <el-button @click="benefitTab = 'rule'">上一步</el-button>
+            <el-button type="primary" :loading="benefitSubmitting" @click="handleBenefitCreate">提交权益入驻</el-button>
+          </div>
+        </div>
+      </el-form>
+    </el-dialog>
+
+    <!-- AI校对结果弹窗 -->
+    <el-dialog v-model="showProofreadDialog" title="🤖 AI校对结果" width="800px" :close-on-click-modal="false">
+      <div v-loading="proofreading">
+        <template v-if="proofreadResult">
+          <div v-if="proofreadResult.issues && proofreadResult.issues.length > 0" style="margin-bottom:16px">
+            <el-alert v-for="(issue, idx) in proofreadResult.issues" :key="idx" :title="issue.type" :description="`原文: ${issue.original} → 建议: ${issue.suggestion}（${issue.position}）`" type="warning" show-icon :closable="false" style="margin-bottom:8px" />
+          </div>
+          <div v-if="proofreadResult.summary" style="margin-bottom:16px">
+            <h4>整体评价</h4>
+            <p>{{ proofreadResult.summary }}</p>
+          </div>
+          <div v-if="proofreadResult.optimizedContent" style="background:#f5f7fa;padding:16px;border-radius:8px;margin-bottom:16px">
+            <h4>优化后内容</h4>
+            <div v-html="proofreadResult.optimizedContent" style="max-height:300px;overflow-y:auto"></div>
+          </div>
+        </template>
+        <el-empty v-else-if="!proofreading" description="暂无校对结果" />
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="fillProofreadResult" :disabled="!proofreadResult?.optimizedContent">一键回填</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 价格摸排结果弹窗 -->
+    <el-dialog v-model="showPriceResearchDialog" title="💹 价格智能摸排" width="800px" :close-on-click-modal="false">
+      <div v-loading="priceResearching">
+        <template v-if="priceResearchResult">
+          <el-alert
+            :type="priceResearchResult.overall === 'REASONABLE' ? 'success' : priceResearchResult.overall === 'HIGH' ? 'warning' : 'info'"
+            :closable="false"
+            style="margin-bottom:16px"
+          >
+            <template #title>
+              价格评分：{{ priceResearchResult.score }} 分 ·
+              {{ priceResearchResult.overall === 'REASONABLE' ? '定价合理' : priceResearchResult.overall === 'HIGH' ? '定价偏高' : '定价偏低' }}
+            </template>
+          </el-alert>
+
+          <el-row :gutter="16" style="margin-bottom:16px">
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <div style="text-align:center">
+                  <div style="font-size:13px;color:#999">我的售价</div>
+                  <div style="font-size:26px;font-weight:700;color:#1a237e">¥{{ productForm.price?.toFixed(2) }}</div>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <div style="text-align:center">
+                  <div style="font-size:13px;color:#999">建议售价</div>
+                  <div style="font-size:26px;font-weight:700;color:#4caf50">¥{{ priceResearchResult.suggestedPrice?.toFixed(2) }}</div>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <div style="text-align:center">
+                  <div style="font-size:13px;color:#999">建议区间</div>
+                  <div style="font-size:18px;font-weight:600;color:#666">¥{{ priceResearchResult.priceLower?.toFixed(2) }} ~ ¥{{ priceResearchResult.priceUpper?.toFixed(2) }}</div>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+
+          <h4 style="margin:16px 0 8px;color:#333">各平台价格对比</h4>
+          <el-table :data="priceResearchResult.competitors" border stripe size="small">
+            <el-table-column prop="platform" label="平台" width="120" />
+            <el-table-column prop="productName" label="商品名称" />
+            <el-table-column label="平台售价" width="150">
+              <template #default="{ row }">¥{{ row.price?.toFixed(2) }}</template>
+            </el-table-column>
+          </el-table>
+
+          <el-alert type="info" :closable="false" style="margin-top:12px" show-icon>
+            <template #title>{{ priceResearchResult.summary }}</template>
+          </el-alert>
+        </template>
+        <el-empty v-else description="暂无摸排结果" />
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="applySuggestedPrice" :disabled="!priceResearchResult?.suggestedPrice">套用建议售价</el-button>
       </template>
     </el-dialog>
   </div>

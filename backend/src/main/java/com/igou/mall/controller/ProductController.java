@@ -1,11 +1,15 @@
 package com.igou.mall.controller;
 
 import com.igou.mall.common.Result;
+import com.igou.mall.dao.BenefitMapper;
+import com.igou.mall.dao.MerchantMapper;
 import com.igou.mall.dao.ProductMapper;
 import com.igou.mall.dao.ProductCategoryMapper;
 import com.igou.mall.dao.StockChangeMapper;
 import com.igou.mall.model.dto.AiAuditItem;
 import com.igou.mall.model.dto.AiAuditResult;
+import com.igou.mall.model.entity.Benefit;
+import com.igou.mall.model.entity.Merchant;
 import com.igou.mall.model.entity.Product;
 import com.igou.mall.model.entity.ProductCategory;
 import com.igou.mall.model.entity.StockChange;
@@ -42,6 +46,12 @@ public class ProductController {
 
     @Autowired
     private StockChangeMapper stockChangeMapper;
+
+    @Autowired
+    private MerchantMapper merchantMapper;
+
+    @Autowired
+    private BenefitMapper benefitMapper;
 
     @GetMapping
     public Result<List<Product>> list(@RequestParam(defaultValue = "0") int page,
@@ -85,6 +95,12 @@ public class ProductController {
             ProductCategory cat = categoryMapper.findById(product.getCategoryId());
             if (cat != null) {
                 product.setCategory(cat.getCategoryName());
+            }
+        }
+        if (product.getMerchantId() != null && product.getMerchantName() == null) {
+            Merchant merchant = merchantMapper.findById(product.getMerchantId());
+            if (merchant != null) {
+                product.setMerchantName(merchant.getMerchantName());
             }
         }
         productMapper.insert(product);
@@ -518,6 +534,137 @@ public class ProductController {
         String merchantSuggestion = merchantOk ? "" : "商品必须关联所属商户，请检查商品创建流程";
         items.add(new AiAuditItem("商户关联检查", merchantOk, merchantDetail, merchantSuggestion));
 
+        // ========== 权益商品特有属性审核 ==========
+        if ("BENEFIT".equals(product.getProductType())) {
+            Benefit benefit = benefitMapper.findByName(product.getProductName());
+
+            // 权益类型校验
+            String benType = benefit != null ? benefit.getBenefitType() : null;
+            boolean benTypeOk = benType != null && !benType.isEmpty();
+            String benTypeDetail = benTypeOk ? "权益类型「" + getBenefitTypeName(benType) + "」已设置" : "权益类型未设置";
+            String benTypeSuggestion = benTypeOk ? "" : "请选择权益类型（会员权益/优惠券/游戏点卡/数字内容/在线服务/保险延保）";
+            items.add(new AiAuditItem("权益类型校验", benTypeOk, benTypeDetail, benTypeSuggestion));
+
+            // 面值合理性
+            BigDecimal faceValue = benefit != null ? benefit.getFaceValue() : null;
+            boolean faceOk = faceValue != null && faceValue.compareTo(BigDecimal.ZERO) > 0;
+            String faceDetail;
+            String faceSuggestion = "";
+            if (!faceOk) {
+                faceDetail = "面值未设置或为0";
+                faceSuggestion = "建议设置权益面值，体现权益价值";
+            } else {
+                faceDetail = "面值¥" + faceValue + "已设置";
+            }
+            items.add(new AiAuditItem("面值合理性", faceOk, faceDetail, faceSuggestion));
+
+            // 结算价合理性
+            BigDecimal settlePrice = benefit != null ? benefit.getSettlePrice() : null;
+            boolean settleOk = settlePrice != null && settlePrice.compareTo(BigDecimal.ZERO) > 0;
+            String settleDetail;
+            String settleSuggestion = "";
+            if (!settleOk) {
+                settleDetail = "结算价未设置或为0";
+                settleSuggestion = "建议设置结算价，用于与供应商结算";
+            } else if (price != null && settlePrice.compareTo(price) > 0) {
+                settleOk = false;
+                settleDetail = "结算价¥" + settlePrice + "高于售价¥" + price + "，可能存在亏损";
+                settleSuggestion = "结算价应低于售价，确保利润空间";
+            } else {
+                settleDetail = "结算价¥" + settlePrice + "，低于售价，利润空间合理";
+            }
+            items.add(new AiAuditItem("结算价合理性", settleOk, settleDetail, settleSuggestion));
+
+            // 有效期设置
+            String validityType = benefit != null ? benefit.getValidityType() : null;
+            Integer validityDays = benefit != null ? benefit.getValidityDays() : null;
+            boolean validityOk = validityType != null && !validityType.isEmpty();
+            String validityDetail;
+            String validitySuggestion = "";
+            if (!validityOk) {
+                validityDetail = "有效期类型未设置";
+                validitySuggestion = "请设置有效期类型（固定日期/领取后N天有效/长期有效）";
+            } else if ("DAYS_AFTER_RECEIVE".equals(validityType) && (validityDays == null || validityDays <= 0)) {
+                validityOk = false;
+                validityDetail = "有效期类型为「领取后N天有效」，但未设置有效天数";
+                validitySuggestion = "请设置有效天数";
+            } else if ("DAYS_AFTER_RECEIVE".equals(validityType)) {
+                validityDetail = "有效期：领取后" + validityDays + "天内有效";
+            } else if ("FIXED_DATE".equals(validityType)) {
+                validityDetail = "有效期：固定日期范围";
+            } else {
+                validityDetail = "有效期：长期有效";
+            }
+            items.add(new AiAuditItem("有效期设置", validityOk, validityDetail, validitySuggestion));
+
+            // 兑换方式
+            String exchangeMethod = benefit != null ? benefit.getExchangeMethod() : null;
+            boolean exchangeOk = exchangeMethod != null && !exchangeMethod.isEmpty();
+            String exchangeDetail = exchangeOk ? "兑换方式「" + getExchangeMethodName(exchangeMethod) + "」已设置" : "兑换方式未设置";
+            String exchangeSuggestion = exchangeOk ? "" : "请设置兑换方式（自动绑定/兑换码/二维码核销/人工发放）";
+            items.add(new AiAuditItem("兑换方式", exchangeOk, exchangeDetail, exchangeSuggestion));
+
+            // 使用规则完整性
+            String usageRules = benefit != null ? benefit.getUsageRules() : null;
+            boolean usageOk = usageRules != null && !usageRules.trim().isEmpty();
+            String usageDetail = usageOk ? "使用规则已填写（" + usageRules.length() + "字符）" : "使用规则未填写";
+            String usageSuggestion = usageOk ? "" : "建议填写使用规则，明确用户权益使用条件和限制";
+            items.add(new AiAuditItem("使用规则完整性", usageOk, usageDetail, usageSuggestion));
+
+            // 退款政策
+            String refundPolicy = benefit != null ? benefit.getRefundPolicy() : null;
+            boolean refundOk = refundPolicy != null && !refundPolicy.isEmpty();
+            String refundDetail = refundOk ? "退款政策「" + getRefundPolicyName(refundPolicy) + "」已设置" : "退款政策未设置";
+            String refundSuggestion = refundOk ? "" : "请设置退款政策（不可退款/有条件退款/支持退款）";
+            items.add(new AiAuditItem("退款政策", refundOk, refundDetail, refundSuggestion));
+
+            // 库存限制
+            Integer stockDailyLimit = benefit != null ? benefit.getStockDailyLimit() : null;
+            Integer stockPerUser = benefit != null ? benefit.getStockPerUser() : null;
+            boolean stockLimitOk = true;
+            String stockLimitDetail;
+            String stockLimitSuggestion = "";
+            if (stockDailyLimit != null && stockDailyLimit > 0 && stockPerUser != null && stockPerUser > 0) {
+                stockLimitDetail = "每日限兑" + stockDailyLimit + "，每人限兑" + stockPerUser + "，限制合理";
+            } else if (stockDailyLimit != null && stockDailyLimit > 0) {
+                stockLimitDetail = "每日限兑" + stockDailyLimit + "，未设置每人限兑";
+                stockLimitSuggestion = "建议设置每人限兑数量，防止恶意兑换";
+            } else if (stockPerUser != null && stockPerUser > 0) {
+                stockLimitDetail = "每人限兑" + stockPerUser + "，未设置每日限兑";
+                stockLimitSuggestion = "建议设置每日限兑数量，控制兑换节奏";
+            } else {
+                stockLimitDetail = "未设置每日/每人限兑限制";
+                stockLimitSuggestion = "建议设置每日限兑和每人限兑数量，防止库存被快速消耗";
+            }
+            items.add(new AiAuditItem("库存限制策略", stockLimitOk, stockLimitDetail, stockLimitSuggestion));
+
+            // 供应商信息
+            String supplierName = benefit != null ? benefit.getSupplierName() : null;
+            String supplierContact = benefit != null ? benefit.getSupplierContact() : null;
+            boolean supplierOk = (supplierName != null && !supplierName.trim().isEmpty())
+                    || (supplierContact != null && !supplierContact.trim().isEmpty());
+            String supplierDetail;
+            String supplierSuggestion = "";
+            if (supplierOk) {
+                StringBuilder sb = new StringBuilder("供应商信息已填写");
+                if (supplierName != null && !supplierName.isEmpty()) sb.append("（名称：「").append(supplierName).append("」");
+                if (supplierContact != null && !supplierContact.isEmpty()) sb.append("，联系方式：「").append(supplierContact).append("」");
+                if (supplierName != null && !supplierName.isEmpty()) sb.append(")");
+                supplierDetail = sb.toString();
+            } else {
+                supplierDetail = "供应商信息未填写";
+                supplierSuggestion = "建议填写供应商名称和联系方式，便于权益的采购和售后对接";
+            }
+            items.add(new AiAuditItem("供应商信息", supplierOk, supplierDetail, supplierSuggestion));
+
+            // 详细说明完整性
+            String detailDesc = benefit != null ? benefit.getDetailDesc() : null;
+            boolean detailDescOk = detailDesc != null && !detailDesc.trim().isEmpty();
+            String detailDescDetail = detailDescOk ? "详细说明已填写（" + detailDesc.length() + "字符）" : "详细说明未填写";
+            String detailDescSuggestion = detailDescOk ? "" : "建议填写详细说明，描述权益的具体内容和使用方式";
+            items.add(new AiAuditItem("详细说明完整性", detailDescOk, detailDescDetail, detailDescSuggestion));
+        }
+
         // 计算得分：每项满分7分，总计98分→调整为百分制
         int totalItems = items.size();
         int passedCount = 0;
@@ -570,6 +717,37 @@ public class ProductController {
         result.setSummary(summaryBuilder.toString());
 
         return Result.success(result);
+    }
+
+    private String getBenefitTypeName(String type) {
+        switch (type) {
+            case "MEMBERSHIP": return "会员权益";
+            case "COUPON": return "优惠券";
+            case "GAME_POINTS": return "游戏点卡";
+            case "DIGITAL_CONTENT": return "数字内容";
+            case "SERVICE": return "在线服务";
+            case "INSURANCE": return "保险/延保";
+            default: return type;
+        }
+    }
+
+    private String getExchangeMethodName(String method) {
+        switch (method) {
+            case "AUTO_BIND": return "自动绑定";
+            case "CODE": return "兑换码";
+            case "QR_CODE": return "二维码核销";
+            case "MANUAL": return "人工发放";
+            default: return method;
+        }
+    }
+
+    private String getRefundPolicyName(String policy) {
+        switch (policy) {
+            case "NO_REFUND": return "不可退款";
+            case "CONDITIONAL": return "有条件退款";
+            case "FULL_REFUND": return "支持退款";
+            default: return policy;
+        }
     }
 
     @PostMapping("/upload")

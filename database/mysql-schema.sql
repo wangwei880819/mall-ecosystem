@@ -739,4 +739,57 @@ INSERT INTO sso_platform (id, name, system_code, auth_type, icon, url, status) V
 (6, '工单管理系统', 'WORK_ORDER', 'JWT', '🎫', NULL, 'ACTIVE'),
 (7, '评价管理系统', 'EVALUATION', 'JWT', '⭐', NULL, 'ACTIVE');
 
+-- ================================================================
+-- 26. 系统配置表
+-- ================================================================
+CREATE TABLE system_config (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    config_key VARCHAR(128) NOT NULL COMMENT '配置键',
+    config_value TEXT COMMENT '配置值',
+    description VARCHAR(512) COMMENT '配置描述',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_config_key (config_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='系统配置表';
+
+-- ================================================================
+-- 27. 权益商品表
+-- ================================================================
+CREATE TABLE benefit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    benefit_code VARCHAR(32) NOT NULL COMMENT '权益编号',
+    benefit_name VARCHAR(128) NOT NULL COMMENT '权益名称',
+    merchant_id BIGINT NOT NULL COMMENT '商户ID',
+    benefit_type VARCHAR(32) NOT NULL COMMENT '权益类型: MEMBERSHIP/COUPON/GAME_POINTS/DIGITAL_CONTENT/SERVICE/INSURANCE',
+    face_value DECIMAL(10,2) COMMENT '面值/原价',
+    price DECIMAL(10,2) NOT NULL COMMENT '售价',
+    settle_price DECIMAL(10,2) COMMENT '结算价',
+    validity_type VARCHAR(32) COMMENT '有效期类型: FIXED_DATE/DAYS_AFTER_RECEIVE/DURATION',
+    validity_start DATETIME COMMENT '有效期开始',
+    validity_end DATETIME COMMENT '有效期结束',
+    validity_days INT COMMENT '有效天数',
+    usage_rules VARCHAR(2000) COMMENT '使用规则',
+    applicable_scope VARCHAR(500) COMMENT '适用范围',
+    exchange_method VARCHAR(32) COMMENT '兑换方式: AUTO_BIND/CODE/QR_CODE/MANUAL',
+    stock_total INT DEFAULT 0 COMMENT '总库存',
+    stock_used INT DEFAULT 0 COMMENT '已兑换数量',
+    stock_daily_limit INT COMMENT '每日限兑',
+    stock_per_user INT COMMENT '每人限兑',
+    supplier_name VARCHAR(128) COMMENT '供应商名称',
+    supplier_contact VARCHAR(64) COMMENT '供应商联系方式',
+    refund_policy VARCHAR(32) COMMENT '退款政策: NO_REFUND/CONDITIONAL/FULL_REFUND',
+    image_url VARCHAR(512) COMMENT '封面图片',
+    detail_desc MEDIUMTEXT COMMENT '详细说明(富文本)',
+    benefit_description VARCHAR(2000) COMMENT '权益描述',
+    ai_tag VARCHAR(64) COMMENT 'AI卖点标签',
+    ai_selling_point VARCHAR(2000) COMMENT 'AI卖点描述',
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/ON_SHELF/OFF_SHELF/REJECTED',
+    auditor VARCHAR(64) COMMENT '审核人',
+    audit_time DATETIME COMMENT '审核时间',
+    reject_reason VARCHAR(500) COMMENT '驳回原因',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    UNIQUE KEY uk_benefit_code (benefit_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='权益商品表';
+
 COMMIT;

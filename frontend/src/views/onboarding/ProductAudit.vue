@@ -5,7 +5,7 @@
     </div>
 
     <div class="table-container">
-      <el-table :data="products" border stripe v-loading="loading">
+      <el-table :data="pagedProducts" border stripe v-loading="loading">
         <el-table-column prop="productCode" label="商品编号" width="160" />
         <el-table-column label="商品图片" width="100">
           <template #default="{ row }">
@@ -14,6 +14,11 @@
           </template>
         </el-table-column>
         <el-table-column prop="productName" label="商品名称" min-width="180" />
+        <el-table-column prop="productType" label="商品类型" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getProductTypeTag(row.productType)">{{ getProductTypeText(row.productType) }}</el-tag>
+          </template>
+        </el-table-column>
         <el-table-column prop="categoryName" label="所属分类" width="120">
           <template #default="{ row }">
             <el-tag>{{ row.categoryName || row.category }}</el-tag>
@@ -38,6 +43,15 @@
           </template>
         </el-table-column>
       </el-table>
+      <div style="display:flex;justify-content:center;margin-top:16px">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="products.length"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next, jumper"
+        />
+      </div>
     </div>
 
     <!-- 审核对话框 -->
@@ -53,20 +67,40 @@
             <el-descriptions-item label="商品名称" :span="2">{{ selectedProduct.productName || '-' }}</el-descriptions-item>
             <el-descriptions-item label="商品编号">{{ selectedProduct.productCode || '-' }}</el-descriptions-item>
             <el-descriptions-item label="售价">¥{{ (selectedProduct.price || 0).toFixed(2) }}</el-descriptions-item>
-            <el-descriptions-item label="市场价">¥{{ (selectedProduct.marketPrice || 0).toFixed(2) }}</el-descriptions-item>
-            <el-descriptions-item label="会员价">¥{{ (selectedProduct.vipPrice || 0).toFixed(2) }}</el-descriptions-item>
+            <el-descriptions-item v-if="selectedProduct.productType !== 'BENEFIT'" label="市场价">¥{{ (selectedProduct.marketPrice || 0).toFixed(2) }}</el-descriptions-item>
+            <el-descriptions-item v-if="selectedProduct.productType !== 'BENEFIT'" label="会员价">¥{{ (selectedProduct.vipPrice || 0).toFixed(2) }}</el-descriptions-item>
             <el-descriptions-item label="所属商户">{{ selectedProduct.merchantName || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="品牌">{{ selectedProduct.brand || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="所属分类">{{ selectedProduct.categoryName || selectedProduct.category || '-' }}</el-descriptions-item>
+            <el-descriptions-item v-if="selectedProduct.productType !== 'BENEFIT'" label="品牌">{{ selectedProduct.brand || '-' }}</el-descriptions-item>
+            <el-descriptions-item v-if="selectedProduct.productType !== 'BENEFIT'" label="所属分类">{{ selectedProduct.categoryName || selectedProduct.category || '-' }}</el-descriptions-item>
             <el-descriptions-item label="商品类型">
               <el-tag size="small">{{ getProductTypeText(selectedProduct.productType) }}</el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="库存">{{ selectedProduct.stock || 0 }}</el-descriptions-item>
-            <el-descriptions-item label="商品介绍" :span="2">{{ selectedProduct.description || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="商品详情" :span="2">
+            <el-descriptions-item v-if="selectedProduct.productType !== 'BENEFIT'" label="库存">{{ selectedProduct.stock || 0 }}</el-descriptions-item>
+            <el-descriptions-item v-if="selectedProduct.productType !== 'BENEFIT'" label="商品介绍" :span="2">{{ selectedProduct.description || '-' }}</el-descriptions-item>
+            <el-descriptions-item v-if="selectedProduct.productType !== 'BENEFIT'" label="商品详情" :span="2">
               <div v-if="selectedProduct.detail" v-html="selectedProduct.detail" style="max-height: 200px; overflow-y: auto"></div>
               <span v-else>-</span>
             </el-descriptions-item>
+
+            <!-- 权益商品特有属性 -->
+            <template v-if="selectedProduct.productType === 'BENEFIT' && selectedProduct._benefit">
+              <el-descriptions-item label="权益类型">{{ getBenefitTypeText(selectedProduct._benefit.benefitType) }}</el-descriptions-item>
+              <el-descriptions-item label="兑换方式">{{ getExchangeMethodText(selectedProduct._benefit.exchangeMethod) }}</el-descriptions-item>
+              <el-descriptions-item label="面值">¥{{ (selectedProduct._benefit.faceValue || 0).toFixed(2) }}</el-descriptions-item>
+              <el-descriptions-item label="结算价">¥{{ (selectedProduct._benefit.settlePrice || 0).toFixed(2) }}</el-descriptions-item>
+              <el-descriptions-item label="有效期类型">{{ getValidityTypeText(selectedProduct._benefit.validityType) }}</el-descriptions-item>
+              <el-descriptions-item label="有效天数">{{ selectedProduct._benefit.validityType === 'DAYS_AFTER_RECEIVE' ? selectedProduct._benefit.validityDays + '天' : '-' }}</el-descriptions-item>
+              <el-descriptions-item v-if="selectedProduct._benefit.validityType === 'FIXED_DATE'" label="有效期范围">{{ selectedProduct._benefit.validityStart || '-' }} ~ {{ selectedProduct._benefit.validityEnd || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="总库存">{{ selectedProduct._benefit.stockTotal || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="每日限兑">{{ selectedProduct._benefit.stockDailyLimit || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="每人限兑">{{ selectedProduct._benefit.stockPerUser || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="联系方式">{{ selectedProduct._benefit.supplierContact || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="退款政策">{{ getRefundPolicyText(selectedProduct._benefit.refundPolicy) }}</el-descriptions-item>
+              <el-descriptions-item label="使用规则" :span="2">{{ selectedProduct._benefit.usageRules || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="适用范围" :span="2">{{ selectedProduct._benefit.applicableScope || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="详细说明" :span="2">{{ selectedProduct._benefit.detailDesc || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="权益描述" :span="2">{{ selectedProduct._benefit.benefitDescription || '-' }}</el-descriptions-item>
+            </template>
           </el-descriptions>
         </div>
 
@@ -154,7 +188,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../../utils/request'
 
@@ -170,6 +204,15 @@ const aiResult = ref(null)
 const rejectReason = ref('')
 const approveReason = ref('')
 
+const currentPage = ref(1)
+const pageSize = ref(10)
+const pagedProducts = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value
+  return products.value.slice(start, start + pageSize.value)
+})
+
+const handlePageChange = () => { /* triggers reactivity */ }
+
 const getStatusType = (status) => {
   const types = { ON_SHELF: 'success', PENDING: 'warning', OFF_SHELF: 'info', REJECTED: 'danger' }
   return types[status] || 'info'
@@ -181,9 +224,24 @@ const getStatusText = (status) => {
 }
 
 const getProductTypeText = (type) => {
-  const map = { PHYSICAL: '实物商品', VIRTUAL: '虚拟商品', DIGITAL: '数字权益' }
-  return map[type] || type || '-'
+  const map = { PHYSICAL: '实物商品', VIRTUAL: '虚拟商品', BENEFIT: '权益商品', DIGITAL: '权益商品' }
+  return map[type] || type || '实物商品'
 }
+
+const getProductTypeTag = (type) => {
+  if (!type || type === 'PHYSICAL') return ''
+  if (type === 'VIRTUAL') return 'warning'
+  return 'success'
+}
+
+const benefitTypeMap = { MEMBERSHIP: '会员权益', COUPON: '优惠券', GAME_POINTS: '游戏点卡', DIGITAL_CONTENT: '数字内容', SERVICE: '在线服务', INSURANCE: '保险/延保' }
+const getBenefitTypeText = (t) => t ? (benefitTypeMap[t] || t) : '-'
+const exchangeMethodMap = { AUTO_BIND: '自动绑定', CODE: '兑换码', QR_CODE: '二维码核销', MANUAL: '人工发放' }
+const getExchangeMethodText = (m) => m ? (exchangeMethodMap[m] || m) : '-'
+const validityTypeMap = { FIXED_DATE: '固定日期', DAYS_AFTER_RECEIVE: '领取后N天有效', DURATION: '长期有效' }
+const getValidityTypeText = (v) => v ? (validityTypeMap[v] || v) : '-'
+const refundPolicyMap = { NO_REFUND: '不可退款', CONDITIONAL: '有条件退款', FULL_REFUND: '支持退款' }
+const getRefundPolicyText = (p) => p ? (refundPolicyMap[p] || p) : '-'
 
 const getFirstImage = (row) => {
   const urls = row?.productImage || row?.imageUrls
@@ -206,8 +264,19 @@ const fetchProducts = async () => {
   }
 }
 
-const openAudit = (product) => {
+const openAudit = async (product) => {
   selectedProduct.value = product
+  // 权益商品：获取权益属性
+  if (product.productType === 'BENEFIT') {
+    try {
+      const res = await request.get(`/benefit/by-name/${encodeURIComponent(product.productName)}`)
+      if (res.code === 200 && res.data) {
+        selectedProduct.value = { ...product, _benefit: res.data }
+      }
+    } catch (e) {
+      console.error('Failed to fetch benefit data:', e)
+    }
+  }
   aiResult.value = null
   showAuditDialog.value = true
 }

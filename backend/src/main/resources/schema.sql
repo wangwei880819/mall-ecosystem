@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS product (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     product_code VARCHAR(32) NOT NULL,
     product_name VARCHAR(128) NOT NULL,
+    product_type VARCHAR(32) DEFAULT 'PHYSICAL' COMMENT '商品类型: PHYSICAL/VIRTUAL/BENEFIT',
     category_id BIGINT,
     category VARCHAR(64) NOT NULL,
     brand VARCHAR(64),
@@ -241,6 +242,43 @@ CREATE TABLE IF NOT EXISTS api_config (
     status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY uk_api_path (api_path)
+);
+
+-- ========== 权益商品表 ==========
+CREATE TABLE IF NOT EXISTS benefit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    benefit_code VARCHAR(32) NOT NULL COMMENT '权益编号',
+    benefit_name VARCHAR(128) NOT NULL COMMENT '权益名称',
+    merchant_id BIGINT NOT NULL COMMENT '商户ID',
+    benefit_type VARCHAR(32) NOT NULL COMMENT '权益类型: MEMBERSHIP/COUPON/GAME_POINTS/DIGITAL_CONTENT/SERVICE/INSURANCE',
+    face_value DECIMAL(10,2) COMMENT '面值/原价',
+    price DECIMAL(10,2) NOT NULL COMMENT '售价',
+    settle_price DECIMAL(10,2) COMMENT '结算价',
+    validity_type VARCHAR(32) COMMENT '有效期类型: FIXED_DATE/DAYS_AFTER_RECEIVE/DURATION',
+    validity_start DATETIME COMMENT '有效期开始',
+    validity_end DATETIME COMMENT '有效期结束',
+    validity_days INT COMMENT '有效天数',
+    usage_rules VARCHAR(2000) COMMENT '使用规则',
+    applicable_scope VARCHAR(500) COMMENT '适用范围',
+    exchange_method VARCHAR(32) COMMENT '兑换方式: AUTO_BIND/CODE/QR_CODE/MANUAL',
+    stock_total INT DEFAULT 0 COMMENT '总库存',
+    stock_used INT DEFAULT 0 COMMENT '已兑换数量',
+    stock_daily_limit INT COMMENT '每日限兑',
+    stock_per_user INT COMMENT '每人限兑',
+    supplier_name VARCHAR(128) COMMENT '供应商名称',
+    supplier_contact VARCHAR(64) COMMENT '供应商联系方式',
+    refund_policy VARCHAR(32) COMMENT '退款政策: NO_REFUND/CONDITIONAL/FULL_REFUND',
+    image_url VARCHAR(512) COMMENT '封面图片',
+    detail_desc MEDIUMTEXT COMMENT '详细说明(富文本)',
+    ai_tag VARCHAR(64) COMMENT 'AI卖点标签',
+    ai_selling_point VARCHAR(2000) COMMENT 'AI卖点描述',
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/ON_SHELF/OFF_SHELF/REJECTED',
+    auditor VARCHAR(64) COMMENT '审核人',
+    audit_time DATETIME COMMENT '审核时间',
+    reject_reason VARCHAR(500) COMMENT '驳回原因',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_benefit_code (benefit_code)
 );
 
 -- ========== 商户审核日志表 ==========

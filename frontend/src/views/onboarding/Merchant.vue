@@ -205,6 +205,43 @@
             </el-form-item>
           </el-col>
         </el-row>
+        <el-divider content-position="left">证件上传（OCR识别）</el-divider>
+        <el-row :gutter="16">
+          <el-col :span="12">
+            <el-form-item label="营业执照">
+              <el-upload
+                :auto-upload="false"
+                :limit="1"
+                :on-change="handleLicenseUpload"
+                :file-list="licenseFileList"
+                list-type="picture-card"
+                accept="image/*"
+              >
+                <el-icon><Plus /></el-icon>
+                <template #tip>
+                  <div class="upload-tip">上传后自动识别填充</div>
+                </template>
+              </el-upload>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="法人身份证">
+              <el-upload
+                :auto-upload="false"
+                :limit="1"
+                :on-change="handleIdCardUpload"
+                :file-list="idCardFileList"
+                list-type="picture-card"
+                accept="image/*"
+              >
+                <el-icon><Plus /></el-icon>
+                <template #tip>
+                  <div class="upload-tip">上传后自动识别填充</div>
+                </template>
+              </el-upload>
+            </el-form-item>
+          </el-col>
+        </el-row>
       </el-form>
       <template #footer>
         <el-button type="primary" @click="submitMerchant" :loading="submitLoading">
@@ -540,6 +577,57 @@ const onMerchantProvinceChange = () => {
     merchantCities.value = []
     form.city = ''
     form.cityCode = ''
+  }
+}
+
+// ==================== OCR 识别 ====================
+const licenseFileList = ref([])
+const idCardFileList = ref([])
+
+const handleLicenseUpload = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file.raw)
+  ElMessage.info('正在识别营业执照...')
+  try {
+    const res = await request.post('/ocr/license', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (res.code === 200) {
+      const d = res.data
+      if (d.companyName) form.merchantName = d.companyName
+      if (d.creditCode) form.creditCode = d.creditCode
+      if (d.legalPerson) form.legalPerson = d.legalPerson
+      if (d.address) form.address = d.address
+      if (d.businessScope) form.businessScope = d.businessScope
+      if (d.registeredCapital) form.registeredCapital = d.registeredCapital
+      ElMessage.success('营业执照识别完成，信息已自动填充')
+    } else {
+      ElMessage.error(res.message || '识别失败')
+    }
+  } catch (e) {
+    ElMessage.error('OCR识别请求失败')
+  }
+}
+
+const handleIdCardUpload = async (file) => {
+  const formData = new FormData()
+  formData.append('file', file.raw)
+  ElMessage.info('正在识别身份证...')
+  try {
+    const res = await request.post('/ocr/idcard', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (res.code === 200) {
+      const d = res.data
+      if (d.name) form.legalPerson = d.name
+      if (d.idNumber) form.legalPersonId = d.idNumber
+      if (d.address) form.address = d.address
+      ElMessage.success('身份证识别完成，信息已自动填充')
+    } else {
+      ElMessage.error(res.message || '识别失败')
+    }
+  } catch (e) {
+    ElMessage.error('OCR识别请求失败')
   }
 }
 

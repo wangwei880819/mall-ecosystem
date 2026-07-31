@@ -85,7 +85,7 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="showModal" :title="editingBenefit ? '编辑权益' : '新增权益引入'" width="800px">
+    <el-dialog v-model="showModal" :title="editingBenefit ? '编辑权益' : '新增权益引入'" width="900px" :close-on-click-modal="false">
       <el-form :model="form" label-width="120px">
         <el-row :gutter="20">
           <el-col :span="12">
@@ -153,7 +153,10 @@
           </el-col>
           <el-col :span="8">
             <el-form-item label="供货价" required>
-              <el-input-number v-model="form.price" :min="0" :precision="2" placeholder="请输入供货价" />
+              <div style="display:flex;align-items:center;gap:6px">
+                <el-input-number v-model="form.price" :min="0" :precision="2" placeholder="请输入供货价" style="width:130px" />
+                <el-button size="small" type="warning" plain :loading="priceResearching" @click="doPriceResearch">💹 价格摸排</el-button>
+              </div>
             </el-form-item>
           </el-col>
           <el-col :span="8">
@@ -199,11 +202,25 @@
         </el-row>
 
         <el-form-item label="兑换规则说明">
-          <el-input v-model="form.exchangeRule" type="textarea" :rows="3" placeholder="请输入兑换规则说明" />
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <el-input v-model="form.exchangeRule" type="textarea" :rows="3" placeholder="请输入兑换规则说明" style="flex:1" />
+            <el-button size="small" type="primary" plain :loading="proofreading" @click="doProofread('exchangeRule')" style="margin-top:2px;flex-shrink:0">🤖 AI校对</el-button>
+          </div>
         </el-form-item>
 
         <el-form-item label="权益描述">
-          <el-input v-model="form.description" type="textarea" :rows="4" placeholder="请输入权益描述" />
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <el-input v-model="form.description" type="textarea" :rows="4" placeholder="请输入权益描述" style="flex:1" />
+            <el-button size="small" type="primary" plain :loading="proofreading" @click="doProofread('description')" style="margin-top:2px;flex-shrink:0">🤖 AI校对</el-button>
+          </div>
+        </el-form-item>
+
+        <el-divider content-position="left">详情说明</el-divider>
+        <el-form-item label="详情说明">
+          <div style="display:flex;align-items:flex-start;gap:8px">
+            <RichTextEditor v-model="form.detail" style="flex:1" />
+            <el-button size="small" type="primary" plain style="margin-top:2px;flex-shrink:0" :loading="proofreading" @click="doProofread('detail')">🤖 AI校对</el-button>
+          </div>
         </el-form-item>
 
         <el-form-item label="适用范围">
@@ -236,10 +253,135 @@
             </el-form-item>
           </el-col>
         </el-row>
+
+        <el-divider content-position="left">🤖 AI辅助工具</el-divider>
+        <el-form-item>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+            <el-button size="small" type="success" plain :loading="autofilling" @click="doAutoFill">🤖 AI辅助补全</el-button>
+            <span style="font-size:12px;color:#999">AI将根据权益名称等信息，智能补全描述、标签、分类等字段</span>
+          </div>
+        </el-form-item>
       </el-form>
 
       <template #footer>
         <el-button type="primary" @click="submitBenefit">保存</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="showProofreadDialog" title="🤖 AI校对结果" width="800px" :close-on-click-modal="false">
+      <div v-loading="proofreadLoading">
+        <template v-if="proofreadResult">
+          <div v-if="proofreadResult.issues && proofreadResult.issues.length > 0" style="margin-bottom:16px">
+            <el-alert v-for="(issue, idx) in proofreadResult.issues" :key="idx" :title="issue.type" :description="`原文: ${issue.original} → 建议: ${issue.suggestion}（${issue.position}）`" type="warning" show-icon :closable="false" style="margin-bottom:8px" />
+          </div>
+          <div v-if="proofreadResult.summary" style="margin-bottom:16px">
+            <h4>📝 整体评价</h4>
+            <p>{{ proofreadResult.summary }}</p>
+          </div>
+          <div v-if="proofreadResult.optimizedContent" style="background:#f5f7fa;padding:16px;border-radius:8px;margin-bottom:16px">
+            <h4>优化后内容</h4>
+            <div v-html="proofreadResult.optimizedContent" style="max-height:300px;overflow-y:auto"></div>
+          </div>
+        </template>
+        <el-empty v-else-if="!proofreadLoading" description="暂无校对结果" />
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="fillProofreadResult" :disabled="!proofreadResult?.optimizedContent">一键回填</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="showAutoFillDialog" title="🤖 AI辅助补全" width="800px" :close-on-click-modal="false">
+      <div v-loading="autofillLoading">
+        <template v-if="autofillResult">
+          <el-table :data="autofillFields" border stripe style="margin-bottom:16px">
+            <el-table-column type="selection" width="45" />
+            <el-table-column prop="label" label="字段" width="120" />
+            <el-table-column prop="current" label="当前值" />
+            <el-table-column prop="suggested" label="AI建议值">
+              <template #default="{ row }">
+                <span :style="{color: row.suggested !== row.current ? '#409eff' : '#999'}">{{ row.suggested || '-' }}</span>
+              </template>
+            </el-table-column>
+          </el-table>
+        </template>
+        <el-empty v-else-if="!autofillLoading" description="暂无补全结果" />
+      </div>
+      <template #footer>
+        <el-button @click="fillSelectedAutoFill">回填选中字段</el-button>
+        <el-button type="primary" @click="fillAllAutoFill">回填全部建议</el-button>
+      </template>
+    </el-dialog>
+
+    <el-dialog v-model="showPriceResearchDialog" title="💹 价格智能摸排" width="800px" :close-on-click-modal="false">
+      <div v-loading="pricingLoading">
+        <template v-if="priceResearchResult">
+          <el-alert
+            :type="priceResearchResult.overall === 'REASONABLE' ? 'success' : priceResearchResult.overall === 'HIGH' ? 'warning' : 'info'"
+            :closable="false" style="margin-bottom:16px"
+          >
+            <template #title>
+              价格评分：{{ priceResearchResult.score }} 分 ·
+              {{ priceResearchResult.overall === 'REASONABLE' ? '定价合理' : priceResearchResult.overall === 'HIGH' ? '定价偏高' : '定价偏低' }}
+            </template>
+          </el-alert>
+          <el-row :gutter="16" style="margin-bottom:16px">
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <div style="text-align:center">
+                  <div style="font-size:13px;color:#999">我的售价</div>
+                  <div style="font-size:26px;font-weight:700;color:#1a237e">¥{{ form.price?.toFixed(2) }}</div>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <div style="text-align:center">
+                  <div style="font-size:13px;color:#999">建议售价</div>
+                  <div style="font-size:26px;font-weight:700;color:#4caf50">¥{{ priceResearchResult.suggestedPrice?.toFixed(2) }}</div>
+                </div>
+              </el-card>
+            </el-col>
+            <el-col :span="8">
+              <el-card shadow="hover">
+                <div style="text-align:center">
+                  <div style="font-size:13px;color:#999">建议区间</div>
+                  <div style="font-size:18px;font-weight:600;color:#666">¥{{ priceResearchResult.priceLower?.toFixed(2) }} ~ ¥{{ priceResearchResult.priceUpper?.toFixed(2) }}</div>
+                </div>
+              </el-card>
+            </el-col>
+          </el-row>
+          <h4 style="margin:16px 0 8px;color:#333">各平台价格对比</h4>
+          <el-table :data="priceResearchResult.competitors" border stripe size="small">
+            <el-table-column prop="platform" label="平台" width="120" />
+            <el-table-column prop="productName" label="商品名称" />
+            <el-table-column label="平台售价" width="150">
+              <template #default="{ row }">¥{{ row.price?.toFixed(2) }}</template>
+            </el-table-column>
+            <el-table-column label="与商城差价" width="150">
+              <template #default="{ row }">
+                <el-tag :type="form.price < row.price ? 'success' : 'danger'" size="small">
+                  {{ form.price < row.price ? '低' : '高' }}{{ Math.abs(((row.price - form.price) / row.price * 100)).toFixed(1) }}%
+                </el-tag>
+              </template>
+            </el-table-column>
+          </el-table>
+          <h4 style="margin:16px 0 8px;color:#333">多维度分析</h4>
+          <div v-for="(item, idx) in priceResearchResult.items" :key="idx" style="margin-bottom:8px;padding:10px 12px;background:#f5f7fa;border-radius:6px">
+            <div style="display:flex;align-items:center;gap:8px">
+              <el-tag :type="item.passed ? 'success' : 'warning'" size="small">{{ item.passed ? '通过' : '注意' }}</el-tag>
+              <span style="font-weight:500">{{ item.dimension }}</span>
+            </div>
+            <div style="font-size:13px;color:#666;margin-top:4px">{{ item.detail }}</div>
+            <div v-if="item.suggestion" style="font-size:13px;color:#409eff;margin-top:2px">→ {{ item.suggestion }}</div>
+          </div>
+          <el-alert type="info" :closable="false" style="margin-top:12px" show-icon>
+            <template #title>{{ priceResearchResult.summary }}</template>
+          </el-alert>
+        </template>
+        <el-empty v-else description="暂无摸排结果" />
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="applySuggestedPrice" :disabled="!priceResearchResult?.suggestedPrice">套用建议售价</el-button>
       </template>
     </el-dialog>
   </div>
@@ -249,6 +391,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import RichTextEditor from '../../components/RichTextEditor.vue'
 import request from '../../utils/request'
 
 const showModal = ref(false)
@@ -258,6 +401,159 @@ const merchants = ref([])
 const categories = ref([])
 const imageList = ref([])
 const editingBenefit = ref(null)
+
+// ===== AI相关 =====
+const proofreading = ref(false)
+const proofreadLoading = ref(false)
+const proofreadTarget = ref('description')
+const showProofreadDialog = ref(false)
+const proofreadResult = ref(null)
+
+const doProofread = async (target = 'description') => {
+  let content
+  if (target === 'description') content = form.value.description
+  else if (target === 'detail') content = form.value.detail
+  else content = form.value.exchangeRule
+  if (!content) { ElMessage.warning('请输入内容后再校对'); return }
+  proofreading.value = true
+  proofreadTarget.value = target
+  proofreadResult.value = null
+  proofreadLoading.value = true
+  showProofreadDialog.value = true
+  try {
+    const res = await request.post('/ai/proofread', { content })
+    if (res.code === 200) {
+      const raw = res.data?.raw || ''
+      try {
+        proofreadResult.value = JSON.parse(raw.replace(/```json\s*|```/g, '').trim())
+      } catch {
+        proofreadResult.value = { optimizedContent: raw, issues: [], summary: '' }
+      }
+    } else {
+      ElMessage.error(res.message || '校对失败')
+    }
+  } catch (e) {
+    ElMessage.error('校对请求失败')
+  } finally {
+    proofreading.value = false
+    proofreadLoading.value = false
+  }
+}
+
+const fillProofreadResult = () => {
+  if (proofreadResult.value?.optimizedContent) {
+    if (proofreadTarget.value === 'description') {
+      form.value.description = proofreadResult.value.optimizedContent
+    } else if (proofreadTarget.value === 'detail') {
+      form.value.detail = proofreadResult.value.optimizedContent
+    } else {
+      form.value.exchangeRule = proofreadResult.value.optimizedContent
+    }
+    showProofreadDialog.value = false
+    ElMessage.success('已回填')
+  }
+}
+
+const autofilling = ref(false)
+const autofillLoading = ref(false)
+const showAutoFillDialog = ref(false)
+const autofillResult = ref(null)
+const autofillFields = ref([])
+
+const doAutoFill = async () => {
+  autofilling.value = true
+  autofillResult.value = null
+  autofillLoading.value = true
+  showAutoFillDialog.value = true
+  try {
+    const res = await request.post('/ai/autofill', {
+      productName: form.value.productName,
+      productType: 'BENEFIT',
+      description: form.value.description,
+      detail: form.value.exchangeRule,
+      content: form.value.detail
+    })
+    if (res.code === 200) {
+      const raw = res.data?.raw || ''
+      let parsed = {}
+      try { parsed = JSON.parse(raw.replace(/```json\s*|```/g, '').trim()) } catch { parsed = {} }
+      autofillResult.value = parsed
+      autofillFields.value = [
+        { key: 'productName', label: '权益名称', current: form.value.productName || '', suggested: parsed.productName || '' },
+        { key: 'description', label: '权益描述', current: form.value.description || '', suggested: parsed.description || '' },
+        { key: 'detail', label: '详情说明', current: stripHtml(form.value.detail || ''), suggested: parsed.detail || '' },
+        { key: 'exchangeRule', label: '兑换规则', current: form.value.exchangeRule || '', suggested: parsed.detail || '' },
+        { key: 'price', label: '供货价', current: form.value.price ? '¥' + form.value.price : '', suggested: parsed.suggestedPrice ? '¥' + parsed.suggestedPrice : '' },
+        { key: 'tags', label: '卖点标签', current: form.value.tags || '', suggested: Array.isArray(parsed.tags) ? parsed.tags.join(',') : (parsed.tags || '') },
+        { key: 'categorySuggestion', label: '分类建议', current: '-', suggested: parsed.categorySuggestion || '' }
+      ]
+    } else {
+      ElMessage.error(res.message || '补全失败')
+    }
+  } catch (e) {
+    ElMessage.error('补全请求失败')
+  } finally {
+    autofilling.value = false
+    autofillLoading.value = false
+  }
+}
+
+const fillSelectedAutoFill = () => { ElMessage.info('请选择需要回填的字段') }
+const fillAllAutoFill = () => {
+  if (!autofillResult.value) return
+  const r = autofillResult.value
+  if (r.productName) form.value.productName = r.productName
+  if (r.description) form.value.description = r.description
+  if (r.detail) form.value.detail = r.detail
+  if (r.detail) form.value.exchangeRule = r.detail
+  if (r.suggestedPrice) form.value.price = r.suggestedPrice
+  if (r.tags) form.value.tags = Array.isArray(r.tags) ? r.tags.join(',') : r.tags
+  showAutoFillDialog.value = false
+  ElMessage.success('已回填全部建议')
+}
+
+const priceResearching = ref(false)
+const pricingLoading = ref(false)
+const showPriceResearchDialog = ref(false)
+const priceResearchResult = ref(null)
+
+const doPriceResearch = async () => {
+  if (!form.value.price || form.value.price <= 0) { ElMessage.warning('请先输入售价'); return }
+  priceResearching.value = true
+  priceResearchResult.value = null
+  pricingLoading.value = true
+  showPriceResearchDialog.value = true
+  try {
+    const res = await request.post('/ai/price-research', {
+      price: form.value.price,
+      productName: form.value.productName,
+      category: form.value.categoryId ? String(form.value.categoryId) : ''
+    })
+    if (res.code === 200) {
+      priceResearchResult.value = res.data
+    } else {
+      ElMessage.error(res.message || '价格摸排失败')
+    }
+  } catch (e) {
+    ElMessage.error('价格摸排请求失败')
+  } finally {
+    priceResearching.value = false
+    pricingLoading.value = false
+  }
+}
+
+const applySuggestedPrice = () => {
+  if (priceResearchResult.value?.suggestedPrice) {
+    form.value.price = priceResearchResult.value.suggestedPrice
+    showPriceResearchDialog.value = false
+    ElMessage.success('已套用建议售价 ¥' + priceResearchResult.value.suggestedPrice.toFixed(2))
+  }
+}
+
+const stripHtml = (html) => {
+  if (!html) return ''
+  return html.replace(/<[^>]+>/g, '').substring(0, 100)
+}
 
 const form = ref({
   id: null,
@@ -273,6 +569,7 @@ const form = ref({
   stock: 0,
   imageUrls: '',
   description: '',
+  detail: '',
   exchangeRule: '',
   validityType: 'PERMANENT',
   validityDays: 30,
@@ -403,6 +700,7 @@ const editBenefit = (benefit) => {
     stock: benefit.stock || 0,
     imageUrls: benefit.imageUrls || '',
     description: benefit.description || '',
+    detail: benefit.detail || '',
     exchangeRule: benefit.exchangeRule || '',
     validityType: benefit.validityType || 'PERMANENT',
     validityDays: benefit.validityDays || 30,
