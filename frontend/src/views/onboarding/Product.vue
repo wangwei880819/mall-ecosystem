@@ -1269,10 +1269,18 @@ const extractSellingPoints = async (row) => {
       productType: row.productType,
       price: row.price,
       description: row.description,
-      brand: row.brand
+      brand: row.brand,
+      category: row.categoryName || row.category || ''
     })
     if (res.code === 200) {
-      sellingPointsData.value = res.data
+      const raw = (res.data?.raw || '').trim()
+      if (raw) {
+        try {
+          sellingPointsData.value = JSON.parse(raw.replace(/```json\s*|```/g, '').trim())
+        } catch {
+          sellingPointsData.value = { shortTitle: raw }
+        }
+      }
     }
   } catch (e) {
     console.error('Selling points error:', e)
@@ -1285,9 +1293,9 @@ const sellingPointsCards = computed(() => {
   if (!sellingPointsData.value) return []
   const cards = []
   if (sellingPointsData.value.shortTitle) cards.push({ type: '🏷️ 短标题', content: sellingPointsData.value.shortTitle })
-  if (sellingPointsData.value.tagline) cards.push({ type: '📢 宣传语', content: sellingPointsData.value.tagline })
-  if (sellingPointsData.value.sellingPoints) cards.push({ type: '💡 卖点文案', content: sellingPointsData.value.sellingPoints })
-  if (sellingPointsData.value.detailOptimization) cards.push({ type: '📝 详情优化', content: sellingPointsData.value.detailOptimization })
+  if (sellingPointsData.value.corePoints) cards.push({ type: '💡 核心卖点', content: sellingPointsData.value.corePoints })
+  if (sellingPointsData.value.marketingCopy) cards.push({ type: '📢 营销文案', content: sellingPointsData.value.marketingCopy })
+  if (sellingPointsData.value.socialCopy) cards.push({ type: '📱 社交分享文案', content: sellingPointsData.value.socialCopy })
   return cards
 })
 

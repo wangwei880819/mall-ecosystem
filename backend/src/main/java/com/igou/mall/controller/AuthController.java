@@ -8,7 +8,9 @@ import com.igou.mall.dao.SsoPlatformMapper;
 import com.igou.mall.model.entity.SysUser;
 import com.igou.mall.model.entity.ApiConfig;
 import com.igou.mall.model.entity.SsoPlatform;
+import com.igou.mall.service.JwtService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 import java.util.*;
 import java.util.Arrays;
@@ -28,6 +30,11 @@ public class AuthController {
     @Autowired
     private SsoPlatformMapper ssoPlatformMapper;
 
+    @Autowired
+    private JwtService jwtService;
+
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody Map<String, String> loginData) {
         String username = loginData.get("username");
@@ -42,8 +49,20 @@ public class AuthController {
             return Result.error(403, "账号已被禁用");
         }
 
+        // 密码验证：兼容BCrypt和明文密码（过渡期）
+        String storedPassword = user.getPassword();
+        if (storedPassword.startsWith("$2a$")) {
+            if (!passwordEncoder.matches(password, storedPassword)) {
+                return Result.error(401, "密码错误");
+            }
+        } else {
+            if (!password.equals(storedPassword)) {
+                return Result.error(401, "密码错误");
+            }
+        }
+
         Map<String, Object> result = new HashMap<>();
-        result.put("token", "demo_token_" + UUID.randomUUID().toString());
+        result.put("token", jwtService.generateToken(user.getUsername(), user.getRole(), user.getId()));
         result.put("user", Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),

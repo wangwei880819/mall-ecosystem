@@ -356,7 +356,7 @@ CREATE TABLE IF NOT EXISTS sso_platform (
 
 -- ========== 种子数据 ==========
 INSERT INTO sys_user (username, password, real_name, phone, role, platforms, status) VALUES
-('admin', 'demo123', '系统管理员', '13800138000', 'SUPER_ADMIN', '1,2,3,4,5,6,7', 'ACTIVE'),
+('admin', '$2a$10$CC.jqflKo7lPLxy8.OsQbOLLnB3zFitqRzm1ElqtziX6WM69u7ILK', '系统管理员', '13800138000', 'SUPER_ADMIN', '1,2,3,4,5,6,7', 'ACTIVE'),
 ('operator01', 'demo123', '运营专员', '13800138001', 'OPERATOR', '1,2,3', 'ACTIVE'),
 ('auditor01', 'demo123', '稽核专员', '13800138002', 'AUDITOR', '1,3,5', 'ACTIVE');
 

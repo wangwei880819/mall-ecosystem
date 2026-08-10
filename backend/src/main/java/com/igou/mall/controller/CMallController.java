@@ -26,7 +26,9 @@ import com.igou.mall.model.entity.ShoppingCart;
 import com.igou.mall.config.CustomerAuthFilter;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -73,6 +75,9 @@ public class CMallController {
     private HomeConfigMapper homeConfigMapper;
 
     private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    @Value("${mall.shipping.free-threshold:99}")
+    private BigDecimal freeShippingThreshold;
 
     /**
      * 从请求中获取已认证的用户ID（由 CustomerAuthFilter 设置）
@@ -207,6 +212,7 @@ public class CMallController {
     }
 
     @PostMapping("/orders")
+    @Transactional
     public Result<Map<String, Object>> createOrder(@RequestBody Map<String, Object> body, HttpServletRequest request) {
         Long customerId = getAuthCustomerId(request);
         if (customerId == null) {
@@ -273,7 +279,7 @@ public class CMallController {
             }
         }
 
-        BigDecimal shippingFee = totalAmount.compareTo(new BigDecimal("99")) >= 0 ? BigDecimal.ZERO : new BigDecimal("10");
+        BigDecimal shippingFee = totalAmount.compareTo(freeShippingThreshold) >= 0 ? BigDecimal.ZERO : new BigDecimal("10");
         BigDecimal finalAmount = totalAmount.add(shippingFee);
 
         String orderCode = "ORD" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) +
@@ -518,40 +524,30 @@ public class CMallController {
     }
 
     @PostMapping("/auth/login")
-    public Map<String, Object> login(@RequestBody Map<String, Object> params) {
+    public Result<Map<String, Object>> login(@RequestBody Map<String, Object> params) {
         String phone = (String) params.getOrDefault("phone", params.get("account"));
         String password = (String) params.get("password");
 
         Customer customer = customerMapper.findByPhone(phone);
         if (customer == null) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("code", 400);
-            error.put("message", "用户不存在");
-            return error;
+            return Result.error(400, "用户不存在");
         }
 
         if (!passwordEncoder.matches(password, customer.getPassword())) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("code", 400);
-            error.put("message", "密码错误");
-            return error;
+            return Result.error(400, "密码错误");
         }
 
         customer.setLastLoginTime(LocalDateTime.now());
         customerMapper.update(customer);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("code", 200);
-        result.put("message", "成功");
-        result.put("result", Map.of(
-            "token", "CUST_" + customer.getId() + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16),
-            "id", customer.getId(),
-            "phone", customer.getPhone(),
-            "nickname", customer.getNickname(),
-            "vipLevel", customer.getVipLevel()
-        ));
+        result.put("token", "CUST_" + customer.getId() + "_" + UUID.randomUUID().toString().replace("-", "").substring(0, 16));
+        result.put("id", customer.getId());
+        result.put("phone", customer.getPhone());
+        result.put("nickname", customer.getNickname());
+        result.put("vipLevel", customer.getVipLevel());
 
-        return result;
+        return Result.success(result);
     }
 
     @GetMapping("/auth/user-info")

@@ -16,7 +16,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 public class JwtService {
 
-    @Value("${jwt.secret:igou-mall-secret-key-2026}")
+    @Value("${jwt.secret:igou-mall-ecosystem-platform-secret-key-2026}")
     private String jwtSecret;
 
     @Value("${jwt.expiration:86400000}")

@@ -2,6 +2,8 @@ package com.igou.mall.service;
 
 import com.igou.mall.dao.SystemConfigMapper;
 import com.igou.mall.model.entity.SystemConfig;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -11,6 +13,8 @@ import java.util.*;
 
 @Service
 public class DeepSeekService {
+
+    private static final Logger log = LoggerFactory.getLogger(DeepSeekService.class);
 
     @Autowired
     private SystemConfigMapper configMapper;
@@ -31,9 +35,15 @@ public class DeepSeekService {
     }
 
     public String chat(String systemPrompt, String userMessage) {
-        if (!isEnabled()) return null;
+        if (!isEnabled()) {
+            log.warn("DeepSeek is not enabled");
+            return null;
+        }
         String apiKey = getApiKey();
-        if (apiKey == null || apiKey.isEmpty()) return null;
+        if (apiKey == null || apiKey.isEmpty()) {
+            log.warn("DeepSeek API key is not configured");
+            return null;
+        }
 
         try {
             HttpHeaders headers = new HttpHeaders();
@@ -57,6 +67,7 @@ public class DeepSeekService {
 
             body.put("messages", messages);
 
+            log.info("Calling DeepSeek API with model={}, msgLen={}", MODEL, userMessage.length());
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
             ResponseEntity<Map> response = restTemplate.postForEntity(API_URL, request, Map.class);
 
@@ -64,11 +75,14 @@ public class DeepSeekService {
                 List<Map<String, Object>> choices = (List<Map<String, Object>>) response.getBody().get("choices");
                 if (choices != null && !choices.isEmpty()) {
                     Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                    return (String) message.get("content");
+                    String content = (String) message.get("content");
+                    log.info("DeepSeek API response received, length={}", content != null ? content.length() : 0);
+                    return content;
                 }
             }
+            log.warn("DeepSeek API returned empty response: {}", response.getBody());
         } catch (Exception e) {
-            return null;
+            log.error("DeepSeek API call failed: {}", e.getMessage(), e);
         }
         return null;
     }

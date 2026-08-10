@@ -4,6 +4,7 @@ import com.igou.mall.common.Result;
 import com.igou.mall.dao.*;
 import com.igou.mall.model.entity.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
@@ -18,6 +19,8 @@ public class RbacController {
     @Autowired private SysMenuMapper sysMenuMapper;
     @Autowired private SysUserRoleMapper sysUserRoleMapper;
     @Autowired private SysRoleMenuMapper sysRoleMenuMapper;
+
+    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
     // ==================== 用户管理 ====================
 
@@ -76,7 +79,7 @@ public class RbacController {
     public Result<String> createUser(@RequestBody Map<String, Object> userData) {
         SysUser user = new SysUser();
         user.setUsername((String) userData.get("username"));
-        user.setPassword((String) userData.get("password"));
+        user.setPassword(passwordEncoder.encode((String) userData.get("password")));
         user.setRealName((String) userData.get("realName"));
         user.setPhone((String) userData.get("phone"));
         user.setEmail((String) userData.get("email"));

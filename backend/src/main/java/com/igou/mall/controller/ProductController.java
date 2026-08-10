@@ -162,6 +162,9 @@ public class ProductController {
         
         int beforeStock = product.getStock();
         int afterStock = beforeStock + changeAmount;
+        if (afterStock < 0) {
+            return Result.error("库存不足，当前库存：" + beforeStock);
+        }
         product.setStock(afterStock);
         productMapper.update(product);
 

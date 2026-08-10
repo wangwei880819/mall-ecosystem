@@ -86,7 +86,7 @@ public class BenefitController {
         product.setProductName(benefit.getBenefitName());
         product.setProductType("BENEFIT");
         product.setCategory("权益商品");
-        product.setCategoryId(17L); // 权益商品分类
+        product.setCategoryId(17L); // 权益商品默认分类
         if (benefit.getMerchantId() != null) {
             product.setMerchantId(benefit.getMerchantId());
             Merchant merchant = merchantMapper.findById(benefit.getMerchantId());

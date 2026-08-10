@@ -626,11 +626,11 @@ CREATE TABLE sys_log (
 -- 种子数据
 -- ================================================================
 INSERT INTO sys_user (username, password, real_name, phone, role, platforms, status) VALUES
-('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '系统管理员', '13800138000', 'SUPER_ADMIN', '1,2,3,4,5,6,7', 'ACTIVE'),
-('operator01', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '运营专员', '13800138001', 'OPERATOR', '1,2,3', 'ACTIVE'),
-('auditor01', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '稽核专员', '13800138002', 'AUDITOR', '1,3,5', 'ACTIVE'),
-('finance01', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '财务专员', '13800138003', 'SYS_ADMIN', '1', 'ACTIVE'),
-('risk01', '$2a$10$N9qo8uLOickgx2ZMRZoMye.IjzqAKL9xL5jvMFVdNJHvGCgTq/VEq', '风控专员', '13800138004', 'SYS_ADMIN', '1,5', 'ACTIVE');
+('admin', '$2a$10$CC.jqflKo7lPLxy8.OsQbOLLnB3zFitqRzm1ElqtziX6WM69u7ILK', '系统管理员', '13800138000', 'SUPER_ADMIN', '1,2,3,4,5,6,7', 'ACTIVE'),
+('operator01', '$2a$10$CC.jqflKo7lPLxy8.OsQbOLLnB3zFitqRzm1ElqtziX6WM69u7ILK', '运营专员', '13800138001', 'OPERATOR', '1,2,3', 'ACTIVE'),
+('auditor01', '$2a$10$CC.jqflKo7lPLxy8.OsQbOLLnB3zFitqRzm1ElqtziX6WM69u7ILK', '稽核专员', '13800138002', 'AUDITOR', '1,3,5', 'ACTIVE'),
+('finance01', '$2a$10$CC.jqflKo7lPLxy8.OsQbOLLnB3zFitqRzm1ElqtziX6WM69u7ILK', '财务专员', '13800138003', 'SYS_ADMIN', '1', 'ACTIVE'),
+('risk01', '$2a$10$CC.jqflKo7lPLxy8.OsQbOLLnB3zFitqRzm1ElqtziX6WM69u7ILK', '风控专员', '13800138004', 'SYS_ADMIN', '1,5', 'ACTIVE');
 
 INSERT INTO product_category (category_code, category_name, parent_id, level, sort_order, status) VALUES
 ('CAT001', '视频娱乐', 0, 1, 1, 'ACTIVE'),
