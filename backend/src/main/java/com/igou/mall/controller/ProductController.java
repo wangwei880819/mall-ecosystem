@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/api/product")
@@ -141,13 +142,24 @@ public class ProductController {
         String rejectReason = (String) params.get("rejectReason");
         String approveReason = (String) params.get("approveReason");
         String auditor = (String) params.get("auditor");
-        product.setStatus(auditStatus);
-        product.setRejectReason(rejectReason);
-        product.setApproveReason(approveReason);
-        product.setAuditor(auditor != null ? auditor : "系统");
-        product.setAuditTime(java.time.LocalDateTime.now());
-        productMapper.update(product);
-        return Result.success(product);
+        Integer reviewLevel = params.get("reviewLevel") != null ? Integer.valueOf(params.get("reviewLevel").toString()) : null;
+
+        LocalDateTime now = LocalDateTime.now();
+        String auditorName = auditor != null ? auditor : "系统";
+
+        if (reviewLevel != null && reviewLevel == 1) {
+            productMapper.auditLevel1(id, auditStatus, 1, now, auditorName, auditorName);
+        } else if (reviewLevel != null && reviewLevel == 2) {
+            productMapper.auditLevel2(id, auditStatus, 2, now, auditorName, auditorName);
+        } else {
+            product.setStatus(auditStatus);
+            product.setRejectReason(rejectReason);
+            product.setApproveReason(approveReason);
+            product.setAuditor(auditorName);
+            product.setAuditTime(now);
+            productMapper.update(product);
+        }
+        return Result.success(productMapper.findById(id));
     }
 
     @PutMapping("/{id}/stock")
@@ -259,7 +271,12 @@ public class ProductController {
 
     @GetMapping("/audit-list")
     public Result<List<Product>> auditList() {
-        return Result.success(productMapper.findByStatus("PENDING"));
+        return Result.success(productMapper.findLevel1AuditList());
+    }
+
+    @GetMapping("/audit-list-2")
+    public Result<List<Product>> auditList2() {
+        return Result.success(productMapper.findLevel2AuditList());
     }
 
     @PostMapping("/{id}/ai-audit")

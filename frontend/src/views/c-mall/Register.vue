@@ -44,7 +44,7 @@
       </form>
 
       <div class="login-link">
-        已有账号? <a href="/mall/login">立即登录</a>
+        已有账号? <a href="/admin/mall/login">立即登录</a>
       </div>
     </div>
   </div>

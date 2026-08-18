@@ -58,13 +58,6 @@
           </el-form-item>
 
           <el-form-item>
-            <div class="form-options">
-              <el-checkbox v-model="rememberMe">记住我</el-checkbox>
-              <a href="#" class="forgot-password">忘记密码？</a>
-            </div>
-          </el-form-item>
-
-          <el-form-item>
             <el-button type="primary" size="large" style="width:100%" @click="handleLogin" :loading="loading">
               {{ loading ? '登录中...' : '登 录' }}
             </el-button>
@@ -88,10 +81,9 @@ const userStore = useUserStore()
 
 const loginFormRef = ref()
 const loginForm = ref({
-  username: 'admin',
-  password: '123456'
+  username: '',
+  password: ''
 })
-const rememberMe = ref(false)
 const loading = ref(false)
 
 const rules = {
@@ -113,9 +105,6 @@ const handleLogin = async () => {
       userStore.setToken(res.data.token)
       await loadUserPlatforms(res.data.user)
       
-      if (rememberMe.value) {
-        localStorage.setItem('username', loginForm.value.username)
-      }
       ElMessage.success('登录成功')
       router.push('/platform-select')
     } else {

@@ -168,8 +168,11 @@ public class CMallController {
         result.put("collectCount", 0);
 
         List<Map<String, Object>> categories = new ArrayList<>();
-        categories.add(Map.of("id", product.getCategoryId(), "name", product.getCategory()));
-        categories.add(Map.of("id", product.getCategoryId(), "name", product.getCategory()));
+        Map<String, Object> cat1 = new HashMap<>();
+        cat1.put("id", product.getCategoryId());
+        cat1.put("name", product.getCategory());
+        categories.add(cat1);
+        categories.add(cat1);
         result.put("categories", categories);
 
         List<String> mainPictures = new ArrayList<>();
@@ -194,9 +197,18 @@ public class CMallController {
 
         Map<String, Object> details = new HashMap<>();
         List<Map<String, Object>> properties = new ArrayList<>();
-        properties.add(Map.of("name", "品牌", "values", product.getBrand()));
-        properties.add(Map.of("name", "分类", "values", product.getCategory()));
-        properties.add(Map.of("name", "规格", "values", product.getSpec() != null ? product.getSpec() : "默认"));
+        Map<String, Object> prop1 = new HashMap<>();
+        prop1.put("name", "品牌");
+        prop1.put("values", product.getBrand());
+        properties.add(prop1);
+        Map<String, Object> prop2 = new HashMap<>();
+        prop2.put("name", "分类");
+        prop2.put("values", product.getCategory());
+        properties.add(prop2);
+        Map<String, Object> prop3 = new HashMap<>();
+        prop3.put("name", "规格");
+        prop3.put("values", product.getSpec() != null ? product.getSpec() : "默认");
+        properties.add(prop3);
         details.put("properties", properties);
 
         List<String> pictures = new ArrayList<>();

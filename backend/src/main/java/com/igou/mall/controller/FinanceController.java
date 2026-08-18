@@ -6,15 +6,20 @@ import com.igou.mall.dao.SettlementDetailMapper;
 import com.igou.mall.dao.InvoiceMapper;
 import com.igou.mall.dao.ReconciliationRecordMapper;
 import com.igou.mall.dao.MallOrderMapper;
+import com.igou.mall.dao.CommissionConfigMapper;
+import com.igou.mall.dao.MerchantMapper;
 import com.igou.mall.model.entity.Settlement;
 import com.igou.mall.model.entity.SettlementDetail;
 import com.igou.mall.model.entity.Invoice;
 import com.igou.mall.model.entity.ReconciliationRecord;
 import com.igou.mall.model.entity.MallOrder;
+import com.igou.mall.model.entity.CommissionConfig;
+import com.igou.mall.model.entity.Merchant;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -40,10 +45,16 @@ public class FinanceController {
     @Autowired
     private MallOrderMapper orderMapper;
 
+    @Autowired
+    private CommissionConfigMapper commissionConfigMapper;
+
+    @Autowired
+    private MerchantMapper merchantMapper;
+
     @GetMapping("/settlements")
     public Result<List<Settlement>> listSettlements(@RequestParam(defaultValue = "0") int page,
                                                      @RequestParam(defaultValue = "20") int size) {
-        return Result.success(settlementMapper.findPage(page * size, size, null, null));
+        return Result.success(settlementMapper.findPage(page * size, size, null, null, null, null, null));
     }
 
     @GetMapping("/settlements/{id}")
@@ -65,13 +76,24 @@ public class FinanceController {
         String settlePeriod = (String) params.get("settlePeriod");
         String settleType = (String) params.getOrDefault("settleType", "COMMISSION");
 
+        // 获取佣金费率配置
+        CommissionConfig commissionConfig = commissionConfigMapper.findDefaultByMerchantId(merchantId);
+        BigDecimal commissionRate = (commissionConfig != null && commissionConfig.getCommissionRate() != null)
+                ? commissionConfig.getCommissionRate() : new BigDecimal("0.05");
+
         List<MallOrder> orders = orderMapper.findByMerchantId(merchantId);
         BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal totalCommission = BigDecimal.ZERO;
         int itemCount = 0;
 
         for (MallOrder order : orders) {
             if ("PAID".equals(order.getStatus()) || "FULFILLED".equals(order.getStatus())) {
-                totalAmount = totalAmount.add(order.getOrderAmount());
+                BigDecimal orderAmount = order.getOrderAmount();
+                BigDecimal commission = orderAmount.multiply(commissionRate).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal merchantAmount = orderAmount.subtract(commission);
+
+                totalAmount = totalAmount.add(orderAmount);
+                totalCommission = totalCommission.add(commission);
                 itemCount++;
             }
         }
@@ -90,11 +112,16 @@ public class FinanceController {
 
         for (MallOrder order : orders) {
             if ("PAID".equals(order.getStatus()) || "FULFILLED".equals(order.getStatus())) {
+                BigDecimal orderAmount = order.getOrderAmount();
+                BigDecimal commission = orderAmount.multiply(commissionRate).setScale(2, RoundingMode.HALF_UP);
+                BigDecimal merchantAmount = orderAmount.subtract(commission);
+
                 SettlementDetail detail = new SettlementDetail();
                 detail.setSettleId(settlement.getId());
                 detail.setOrderCode(order.getOrderCode());
-                detail.setOrderAmount(order.getOrderAmount());
-                detail.setMerchantAmount(order.getOrderAmount());
+                detail.setOrderAmount(orderAmount);
+                detail.setCommissionAmount(commission);
+                detail.setMerchantAmount(merchantAmount);
                 detailMapper.insert(detail);
             }
         }
@@ -132,12 +159,12 @@ public class FinanceController {
 
     @GetMapping("/settlements/merchant/{merchantId}")
     public Result<List<Settlement>> listByMerchant(@PathVariable Long merchantId) {
-        return Result.success(settlementMapper.findPage(0, 100, merchantId, null));
+        return Result.success(settlementMapper.findPage(0, 100, merchantId, null, null, null, null));
     }
 
     @GetMapping("/settlements/status/{status}")
     public Result<List<Settlement>> listByStatus(@PathVariable String status) {
-        return Result.success(settlementMapper.findPage(0, 100, null, status));
+        return Result.success(settlementMapper.findPage(0, 100, null, status, null, null, null));
     }
 
     @GetMapping("/invoices")

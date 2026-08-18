@@ -31,8 +31,8 @@ public class SettlementService {
     @Transactional
     public Map<String, Object> getSettlementList(Integer page, Integer size, Long merchantId, String status) {
         int offset = page * size;
-        List<Settlement> settlements = settlementMapper.findPage(offset, size, merchantId, status);
-        Integer total = settlementMapper.count(merchantId, status);
+        List<Settlement> settlements = settlementMapper.findPage(offset, size, merchantId, status, null, null, null);
+        Integer total = settlementMapper.count(merchantId, status, null, null, null);
 
         Map<String, Object> result = new HashMap<>();
         result.put("list", settlements);
@@ -151,21 +151,21 @@ public class SettlementService {
 
     @Transactional
     public List<Settlement> listByMerchant(Long merchantId) {
-        return settlementMapper.findPage(0, 100, merchantId, null);
+        return settlementMapper.findPage(0, 100, merchantId, null, null, null, null);
     }
 
     @Transactional
     public List<Settlement> listByStatus(String status) {
-        return settlementMapper.findPage(0, 100, null, status);
+        return settlementMapper.findPage(0, 100, null, status, null, null, null);
     }
 
     @Transactional
     public Map<String, Object> getStatistics(Long merchantId) {
         Map<String, Object> stats = new HashMap<>();
-        BigDecimal totalAmount = settlementMapper.sumAmount(merchantId, "COMPLETED");
-        BigDecimal pendingAmount = settlementMapper.sumAmount(merchantId, "PENDING");
-        Integer paidCount = settlementMapper.count(merchantId, "COMPLETED");
-        Integer pendingCount = settlementMapper.count(merchantId, "PENDING");
+        BigDecimal totalAmount = settlementMapper.sumAmount(merchantId, "COMPLETED", null, null, null);
+        BigDecimal pendingAmount = settlementMapper.sumAmount(merchantId, "PENDING", null, null, null);
+        Integer paidCount = settlementMapper.count(merchantId, "COMPLETED", null, null, null);
+        Integer pendingCount = settlementMapper.count(merchantId, "PENDING", null, null, null);
 
         stats.put("totalAmount", totalAmount != null ? totalAmount : BigDecimal.ZERO);
         stats.put("pendingAmount", pendingAmount != null ? pendingAmount : BigDecimal.ZERO);

@@ -38,26 +38,64 @@
 
     <!-- 结算记录 -->
     <template v-if="tab === 'records'">
-      <div class="card">
-        <div class="card-header">
-          <h3>结算记录</h3>
-          <div>
-            <select v-model="filterType" style="padding:6px 12px;border-radius:4px;border:1px solid #ddd;margin-right:8px">
+      <!-- 筛选区域 -->
+      <div class="card filter-card">
+        <div class="filter-row">
+          <div class="filter-item">
+            <label>结算类型</label>
+            <select v-model="filterParams.settleType" style="padding:6px 12px;border-radius:4px;border:1px solid #ddd;width:150px">
               <option value="">全部</option>
               <option value="AI_DOU">AI豆结算</option>
               <option value="COMMISSION">佣金结算</option>
               <option value="EXPANSION">商拓费结算</option>
             </select>
+          </div>
+          <div class="filter-item">
+            <label>商户</label>
+            <select v-model="filterParams.merchantId" style="padding:6px 12px;border-radius:4px;border:1px solid #ddd;width:180px">
+              <option value="">全部商户</option>
+              <option v-for="m in merchantOptions" :key="m.id" :value="m.id">{{ m.name }}</option>
+            </select>
+          </div>
+          <div class="filter-item">
+            <label>开始时间</label>
+            <input type="date" v-model="filterParams.startTime" style="padding:6px 12px;border-radius:4px;border:1px solid #ddd" />
+          </div>
+          <div class="filter-item">
+            <label>结束时间</label>
+            <input type="date" v-model="filterParams.endTime" style="padding:6px 12px;border-radius:4px;border:1px solid #ddd" />
+          </div>
+          <div class="filter-item filter-actions">
+            <button class="btn btn-primary btn-sm" @click="applyFilter">查询</button>
+            <button class="btn btn-outline btn-sm" @click="resetFilter">重置</button>
+            <button class="btn btn-success btn-sm" @click="exportExcel" :disabled="exportLoading">
+              {{ exportLoading ? '导出中...' : '📥 导出Excel' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 合计金额展示 -->
+      <div class="total-amount-bar" v-if="filteredTotalAmount !== null">
+        <span class="total-label">当前筛选结果结算金额合计：</span>
+        <span class="total-value">¥{{ formatAmount(filteredTotalAmount) }}</span>
+        <span class="total-count">（共 {{ filteredRecords.length }} 笔）</span>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>结算记录</h3>
+          <div>
             <button class="btn btn-primary btn-sm" @click="showGenerateModal = true">生成结算单</button>
           </div>
         </div>
         <table class="data-table">
           <thead>
-            <tr><th>结算编号</th><th>所属商户</th><th>结算类型</th><th>结算周期</th><th>金额</th><th>笔数</th><th>状态</th><th>操作</th></tr>
+            <tr><th>结算编号</th><th>所属商户</th><th>结算类型</th><th>结算周期</th><th>金额</th><th>笔数</th><th>状态</th><th>创建时间</th><th>操作</th></tr>
           </thead>
           <tbody>
-            <tr v-if="recordsLoading" class="text-center"><td colspan="8">加载中...</td></tr>
-            <tr v-else-if="filteredRecords.length === 0" class="text-center"><td colspan="8">暂无结算记录</td></tr>
+            <tr v-if="recordsLoading" class="text-center"><td colspan="9">加载中...</td></tr>
+            <tr v-else-if="filteredRecords.length === 0" class="text-center"><td colspan="9">暂无结算记录</td></tr>
             <tr v-for="r in filteredRecords" :key="r.id">
               <td>{{ r.settleCode }}</td>
               <td>{{ r.merchant }}</td>
@@ -66,6 +104,7 @@
               <td style="font-weight:600">¥{{ formatAmount(r.totalAmount) }}</td>
               <td>{{ (r.itemCount || 0).toLocaleString() }}</td>
               <td><span :class="getStatusClass(r.status)">{{ getStatusText(r.status) }}</span></td>
+              <td>{{ r.createTime ? r.createTime.substring(0, 10) : '-' }}</td>
               <td>
                 <button class="btn btn-sm btn-outline" @click="viewDetail(r)">详情</button>
                 <button v-if="r.status === 'PENDING'" class="btn btn-sm btn-primary" @click="approve(r)">审批</button>
@@ -99,17 +138,18 @@
       <div class="card">
         <div class="card-header">
           <h3>结算规则配置</h3>
-          <button class="btn btn-primary btn-sm" @click="showRuleModal = true">+ 配置规则</button>
+          <button class="btn btn-primary btn-sm" @click="openRuleModal()">+ 配置规则</button>
         </div>
         <table class="data-table">
           <thead>
-            <tr><th>商户</th><th>佣金比例</th><th>结算周期</th><th>最低结算额</th><th>操作</th></tr>
+            <tr><th>商户</th><th>结算类型</th><th>佣金比例</th><th>结算周期</th><th>最低结算额</th><th>操作</th></tr>
           </thead>
           <tbody>
-            <tr v-if="rulesLoading" class="text-center"><td colspan="5">加载中...</td></tr>
-            <tr v-else-if="settleRules.length === 0" class="text-center"><td colspan="5">暂无规则配置</td></tr>
-            <tr v-for="r in settleRules" :key="r.merchantId">
+            <tr v-if="rulesLoading" class="text-center"><td colspan="6">加载中...</td></tr>
+            <tr v-else-if="settleRules.length === 0" class="text-center"><td colspan="6">暂无规则配置</td></tr>
+            <tr v-for="r in settleRules" :key="r.id || (r.merchantId + '_' + r.settleType)">
               <td>{{ r.merchantName || '商户' + r.merchantId }}</td>
+              <td><span :class="getTypeClass(r.settleType)">{{ getTypeText(r.settleType) }}</span></td>
               <td><span style="font-weight:600;color:#1a237e">{{ formatRate(r.commissionRate) }}%</span></td>
               <td>{{ r.settlePeriod === 'MONTHLY' ? '月结' : r.settlePeriod === 'WEEKLY' ? '周结' : '实时结算' }}</td>
               <td>¥{{ formatAmount(r.minSettleAmount) }}</td>
@@ -283,6 +323,15 @@
               <option :value="m.id" v-for="m in merchantOptions" :key="m.id">{{ m.name }}</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>结算类型 <span style="color:red">*</span></label>
+            <select v-model="newRule.settleType">
+              <option value="">请选择结算类型</option>
+              <option value="AI_DOU">AI豆结算</option>
+              <option value="COMMISSION">佣金结算</option>
+              <option value="EXPANSION">商拓费结算</option>
+            </select>
+          </div>
           <div class="grid-2">
             <div class="form-group">
               <label>佣金比例</label>
@@ -314,12 +363,11 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import request from '../../utils/request'
 import { SETTLE_STATUS, SETTLE_STATUS_CLASS, SETTLE_TYPE_TEXT, SETTLE_TYPE_CLASS } from '../../utils/constants'
 
 const tab = ref('records')
-const filterType = ref('')
 const showDetail = ref(false)
 const showGenerateModal = ref(false)
 const showRuleModal = ref(false)
@@ -330,6 +378,16 @@ const recordsLoading = ref(false)
 const rulesLoading = ref(false)
 const generateLoading = ref(false)
 const ruleSaveLoading = ref(false)
+const exportLoading = ref(false)
+
+const filterParams = ref({
+  settleType: '',
+  merchantId: '',
+  startTime: '',
+  endTime: ''
+})
+
+const filteredTotalAmount = ref(null)
 
 const overview = ref({
   totalAmount: 0,
@@ -363,6 +421,7 @@ const newSettle = ref({
 
 const newRule = ref({
   merchantId: 1,
+  settleType: '',
   commissionRate: 5,
   settlePeriod: 'MONTHLY',
   minSettleAmount: 100
@@ -378,8 +437,7 @@ const aiDouTrend = [
 ]
 
 const filteredRecords = computed(() => {
-  if (!filterType.value) return records.value
-  return records.value.filter(r => r.settleType === filterType.value)
+  return records.value
 })
 
 const formatAmount = (val) => {
@@ -393,7 +451,6 @@ const formatRate = (val) => {
   if (val === null || val === undefined) return '0'
   const num = typeof val === 'number' ? val : Number(val)
   if (isNaN(num)) return '0'
-  // 如果已经是百分比形式（如5表示5%），直接返回
   if (num < 1 && num > 0) return (num * 100).toFixed(2)
   return num.toFixed(2)
 }
@@ -412,7 +469,12 @@ const fetchOverview = async () => {
 const fetchRecords = async () => {
   recordsLoading.value = true
   try {
-    const res = await request.get('/admin/settlement/records')
+    const params = {}
+    if (filterParams.value.settleType) params.settleType = filterParams.value.settleType
+    if (filterParams.value.merchantId) params.merchantId = filterParams.value.merchantId
+    if (filterParams.value.startTime) params.startTime = filterParams.value.startTime + ' 00:00:00'
+    if (filterParams.value.endTime) params.endTime = filterParams.value.endTime + ' 23:59:59'
+    const res = await request.get('/admin/settlement/records', { params })
     if (res.code === 200) {
       records.value = res.data || []
     }
@@ -420,6 +482,68 @@ const fetchRecords = async () => {
     console.error('获取结算记录失败:', e)
   } finally {
     recordsLoading.value = false
+  }
+}
+
+const fetchTotalAmount = async () => {
+  try {
+    const params = {}
+    if (filterParams.value.settleType) params.settleType = filterParams.value.settleType
+    if (filterParams.value.merchantId) params.merchantId = filterParams.value.merchantId
+    if (filterParams.value.startTime) params.startTime = filterParams.value.startTime + ' 00:00:00'
+    if (filterParams.value.endTime) params.endTime = filterParams.value.endTime + ' 23:59:59'
+    const res = await request.get('/admin/settlement/records/total', { params })
+    if (res.code === 200) {
+      filteredTotalAmount.value = res.data?.totalAmount || 0
+    }
+  } catch (e) {
+    console.error('获取结算合计失败:', e)
+    filteredTotalAmount.value = null
+  }
+}
+
+const applyFilter = async () => {
+  await fetchRecords()
+  await fetchTotalAmount()
+}
+
+const resetFilter = () => {
+  filterParams.value = { settleType: '', merchantId: '', startTime: '', endTime: '' }
+  fetchRecords()
+  fetchTotalAmount()
+}
+
+const exportExcel = async () => {
+  exportLoading.value = true
+  try {
+    const params = new URLSearchParams()
+    if (filterParams.value.settleType) params.append('settleType', filterParams.value.settleType)
+    if (filterParams.value.merchantId) params.append('merchantId', filterParams.value.merchantId)
+    if (filterParams.value.startTime) params.append('startTime', filterParams.value.startTime + ' 00:00:00')
+    if (filterParams.value.endTime) params.append('endTime', filterParams.value.endTime + ' 23:59:59')
+
+    const response = await fetch(`/api/admin/settlement/records/export?${params.toString()}`, {
+      headers: { 'Authorization': 'Bearer ' + localStorage.getItem('token') }
+    })
+    if (!response.ok) {
+      ElMessage.error('导出失败')
+      return
+    }
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `结算记录_${new Date().toISOString().slice(0, 10)}.xlsx`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    window.URL.revokeObjectURL(url)
+    ElMessage.success('导出成功')
+  } catch (e) {
+    console.error('导出失败:', e)
+    ElMessage.error('导出失败')
+  } finally {
+    exportLoading.value = false
   }
 }
 
@@ -450,7 +574,7 @@ const fetchMerchants = async () => {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchOverview(), fetchRecords(), fetchRules(), fetchMerchants()])
+  await Promise.all([fetchOverview(), fetchRecords(), fetchTotalAmount(), fetchRules(), fetchMerchants()])
 })
 
 const getTypeClass = (type) => {
@@ -476,13 +600,25 @@ const viewDetail = (item) => {
 
 const approve = async (item) => {
   try {
+    await ElMessageBox.confirm(
+      `确认审核通过该结算单？\n结算编号：${item.settleCode}\n结算金额：¥${formatAmount(item.totalAmount)}`,
+      '审核确认',
+      {
+        confirmButtonText: '确认通过',
+        cancelButtonText: '取消',
+        type: 'success'
+      }
+    )
+  } catch {
+    return
+  }
+  try {
     const res = await request.put(`/finance/settlements/${item.id}/approve`, {
       approver: 'admin'
     })
     if (res.code === 200) {
       ElMessage.success('审批通过')
-      // 刷新数据
-      await Promise.all([fetchRecords(), fetchOverview()])
+      await Promise.all([fetchRecords(), fetchOverview(), fetchTotalAmount()])
     } else {
       ElMessage.error(res.message || '审批失败')
     }
@@ -511,7 +647,7 @@ const generateSettle = async () => {
     if (res.code === 200) {
       ElMessage.success('结算单生成成功')
       showGenerateModal.value = false
-      await Promise.all([fetchRecords(), fetchOverview()])
+      await Promise.all([fetchRecords(), fetchOverview(), fetchTotalAmount()])
     } else {
       ElMessage.error(res.message || '生成失败')
     }
@@ -523,13 +659,35 @@ const generateSettle = async () => {
   }
 }
 
+const openRuleModal = () => {
+  editingRule.value = null
+  newRule.value = {
+    merchantId: merchantOptions.value[0]?.id || 1,
+    settleType: '',
+    commissionRate: 5,
+    settlePeriod: 'MONTHLY',
+    minSettleAmount: 100
+  }
+  showRuleModal.value = true
+}
+
 const editRule = (rule) => {
   editingRule.value = rule
-  newRule.value = { ...rule }
+  newRule.value = {
+    merchantId: rule.merchantId,
+    settleType: rule.settleType || '',
+    commissionRate: rule.commissionRate,
+    settlePeriod: rule.settlePeriod || 'MONTHLY',
+    minSettleAmount: rule.minSettleAmount || 100
+  }
   showRuleModal.value = true
 }
 
 const saveRule = async () => {
+  if (!newRule.value.settleType) {
+    ElMessage.warning('请选择结算类型')
+    return
+  }
   if (!newRule.value.commissionRate) {
     ElMessage.warning('请输入佣金比例')
     return
@@ -538,6 +696,7 @@ const saveRule = async () => {
   try {
     const res = await request.post('/admin/settlement/rules', {
       merchantId: newRule.value.merchantId,
+      settleType: newRule.value.settleType,
       commissionRate: newRule.value.commissionRate,
       settlePeriod: newRule.value.settlePeriod,
       minSettleAmount: newRule.value.minSettleAmount
@@ -546,12 +705,6 @@ const saveRule = async () => {
       ElMessage.success('规则保存成功')
       showRuleModal.value = false
       editingRule.value = null
-      newRule.value = {
-        merchantId: 1,
-        commissionRate: 5,
-        settlePeriod: 'MONTHLY',
-        minSettleAmount: 100
-      }
       await fetchRules()
     } else {
       ElMessage.error(res.message || '保存失败')
@@ -569,6 +722,15 @@ const saveRule = async () => {
 .btn-sm {
   padding: 4px 12px;
   font-size: 12px;
+}
+
+.btn-success {
+  background: #67c23a;
+  color: #fff;
+  border: 1px solid #67c23a;
+}
+.btn-success:hover {
+  background: #85ce61;
 }
 
 /* 统计区与Tab之间分割线 */
@@ -589,6 +751,66 @@ const saveRule = async () => {
 
 .settle-tabs :deep(.el-tabs__nav-wrap::after) {
   height: 1px;
+}
+
+/* 筛选区域 */
+.filter-card {
+  padding: 16px 20px;
+  margin-bottom: 12px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.filter-item label {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.filter-actions {
+  flex-direction: row;
+  align-items: flex-end;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+/* 合计金额展示 */
+.total-amount-bar {
+  background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 15px;
+}
+
+.total-label {
+  opacity: 0.9;
+}
+
+.total-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffd54f;
+}
+
+.total-count {
+  opacity: 0.7;
+  font-size: 13px;
 }
 
 .text-center {

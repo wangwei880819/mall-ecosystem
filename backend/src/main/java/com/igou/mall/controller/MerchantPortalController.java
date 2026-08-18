@@ -4,13 +4,15 @@ import com.igou.mall.common.Result;
 import com.igou.mall.dao.MerchantMapper;
 import com.igou.mall.dao.ProductMapper;
 import com.igou.mall.dao.MallOrderMapper;
+import com.igou.mall.dao.BenefitMapper;
 import com.igou.mall.model.entity.Merchant;
 import com.igou.mall.model.entity.MallOrder;
 import com.igou.mall.model.entity.Product;
+import com.igou.mall.model.entity.Benefit;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,6 +31,9 @@ public class MerchantPortalController {
 
     @Autowired
     private MallOrderMapper orderMapper;
+
+    @Autowired
+    private BenefitMapper benefitMapper;
 
     /**
      * 商户入驻注册
@@ -82,10 +87,7 @@ public class MerchantPortalController {
         }
 
         if (!"APPROVED".equals(merchant.getOnboardingStatus())) {
-            Map<String, Object> errorResult = new HashMap<>();
-            errorResult.put("onboardingStatus", merchant.getOnboardingStatus());
-            errorResult.put("message", "您的入驻申请正在审核中，请耐心等待");
-            return new Result<>(403, "您的入驻申请正在审核中，请耐心等待", errorResult);
+            return Result.error("您的入驻申请正在审核中，请耐心等待");
         }
 
         Map<String, Object> result = new HashMap<>();
@@ -151,10 +153,51 @@ public class MerchantPortalController {
      */
     @PostMapping("/products")
     public Result<Product> addProduct(@RequestBody Product product) {
+        if (product.getMerchantId() == null) {
+            return Result.error("商户ID不能为空");
+        }
+        Merchant merchant = merchantMapper.findById(product.getMerchantId());
+        if (merchant != null) {
+            product.setMerchantName(merchant.getMerchantName());
+        }
         product.setProductCode("PRD" + System.currentTimeMillis());
         product.setStatus("PENDING");
         productMapper.insert(product);
         return Result.success(product);
+    }
+
+    /**
+     * 商户新增权益（权益引入）
+     */
+    @PostMapping("/benefit")
+    public Result<Benefit> addBenefit(@RequestBody Benefit benefit) {
+        benefit.setBenefitCode("BFT" + System.currentTimeMillis());
+        if (benefit.getStatus() == null) benefit.setStatus("PENDING");
+        if (benefit.getStockUsed() == null) benefit.setStockUsed(0);
+        benefitMapper.insert(benefit);
+
+        // 同步创建 product 记录，使权益进入统一商品审核流程
+        Product product = new Product();
+        product.setProductCode("PRD" + System.currentTimeMillis());
+        product.setProductName(benefit.getBenefitName());
+        product.setProductType("BENEFIT");
+        product.setCategory("权益商品");
+        product.setCategoryId(17L);
+        if (benefit.getMerchantId() != null) {
+            product.setMerchantId(benefit.getMerchantId());
+            Merchant merchant = merchantMapper.findById(benefit.getMerchantId());
+            if (merchant != null) {
+                product.setMerchantName(merchant.getMerchantName());
+            }
+        }
+        product.setPrice(benefit.getPrice() != null ? benefit.getPrice() : BigDecimal.ZERO);
+        product.setDescription(benefit.getBenefitType());
+        product.setDetail(benefit.getUsageRules());
+        product.setImageUrls(benefit.getImageUrl());
+        product.setStatus("PENDING");
+        productMapper.insert(product);
+
+        return Result.success(benefit);
     }
 
     /**

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>风控稽核管理平台</title>
+    <script type="module" crossorigin src="/risk/assets/index-BNF6yNwJ.js"></script>
+    <link rel="modulepreload" crossorigin href="/risk/assets/runtime-core.esm-bundler-Bx4mDRFu.js">
+    <link rel="modulepreload" crossorigin href="/risk/assets/message-BsDObhxu.js">
+    <link rel="modulepreload" crossorigin href="/risk/assets/message-box-INnKdCLB.js">
+    <link rel="stylesheet" crossorigin href="/risk/assets/index-BVtWPqVP.css">
+  </head>
+  <body>
+    <div id="app"></div>
+  <div id="log-float"></div>
+  <script>
+  (function(){
+    var panel = document.getElementById('log-float');
+    var expanded = false, enabled = true, logs = [], w = 380, h = 400;
+    var filterType = '', requestIdCounter = 0;
+
+    function sanitize(body) {
+      if (!body) return null;
+      if (typeof body === 'string') { try { return JSON.parse(body) } catch(e) { return body.substring(0, 2000) } }
+      try { return JSON.parse(JSON.stringify(body)) } catch(e) { return String(body).substring(0, 2000) }
+    }
+    function fmtTime() {
+      var d = new Date();
+      return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')+' '+
+        String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0');
+    }
+    function cleanUrl(url) {
+      if (!url) return '';
+      try { var u = new URL(url, window.location.origin); return u.pathname + u.search; } catch(e) { return url; }
+    }
+    function notify(log) {
+      logs.push(log); if (logs.length > 200) logs.shift();
+      render();
+    }
+
+    function render(){
+      var filtered = filterType ? logs.filter(function(l){ return l.result === filterType }) : logs;
+      var listHtml = filtered.length === 0 ? '<div class="lf-empty">' + (enabled ? '等待请求...' : '已暂停拦截') + '</div>' : '';
+      for(var i = 0; i < filtered.length; i++){
+        var l = filtered[i];
+        listHtml += '<div class="lf-item' + (l.result === 'FAILURE' ? ' lf-error' : l.result === 'PENDING' ? ' lf-pending' : '') + '" onclick="window._lfShowDetail(' + l.id + ')">' +
+          '<div class="lf-item-h"><span class="lf-method lf-m-' + (l.method || 'GET') + '">' + (l.method || 'GET') + '</span>' +
+          '<span class="lf-uri">' + (l.uri || '') + '</span>' +
+          '<span class="lf-cost">' + (l.costTime > 0 ? l.costTime + 'ms' : '...') + '</span></div>' +
+          '<div class="lf-item-m"><span class="' + (l.result === 'SUCCESS' ? 'lf-ok' : l.result === 'FAILURE' ? 'lf-fail' : 'lf-pend') + '">' +
+          (l.result === 'SUCCESS' ? '✓' : l.result === 'FAILURE' ? '✗' : '⏳') + '</span>' +
+          '<span>' + (l.status || '-') + '</span><span>' + (l.channel || '-') + '</span><span>' + (l.createTime ? l.createTime.substring(11,19) : '') + '</span></div></div>';
+      }
+      panel.innerHTML =
+        '<div class="lf-panel' + (expanded ? ' lf-expanded' : '') + '" style="width:' + (expanded ? w + 'px' : 'auto') + ';height:' + (expanded ? h + 'px' : 'auto') + '">' +
+        '<div class="lf-header"><span class="lf-title" style="cursor:pointer" onclick="window._lfToggle()">📋 请求监控 ' + (expanded ? '' : '(' + logs.length + ')') +
+        (enabled ? '' : '<span class="lf-badge">已暂停</span>') + '</span>' +
+        '<div class="lf-actions"><button class="lf-btn" onclick="window._lfToggleEnable()">' + (enabled ? '⏸' : '▶') + '</button>' +
+        '<button class="lf-btn" onclick="window._lfClear()">🗑</button>' +
+        '<button class="lf-btn" onclick="window._lfToggle()">' + (expanded ? '▼' : '▲') + '</button></div></div>' +
+        (expanded ? '<div class="lf-body"><div class="lf-toolbar"><select onchange="window._lfFilter(this.value)" style="font-size:11px;padding:2px 4px"><option value="">全部</option><option value="SUCCESS">成功</option><option value="FAILURE">失败</option></select>' +
+        '<span style="font-size:10px;color:#999">共 ' + logs.length + ' 条</span></div>' +
+        '<div class="lf-list" id="lf-list">' + listHtml + '</div></div><div class="lf-resize" onmousedown="window._lfResizeStart(event)"></div>' : '') +
+        '</div>';
+      if(expanded){ var el = document.getElementById('lf-list'); if(el) el.scrollTop = el.scrollHeight; }
+    }
+
+    // ---- 拦截 XMLHttpRequest ----
+    var OrigXHR = window.XMLHttpRequest;
+    OrigXHR.prototype._origOpen = OrigXHR.prototype.open;
+    OrigXHR.prototype._origSend = OrigXHR.prototype.send;
+    OrigXHR.prototype.open = function(method, url) {
+      this._reqId = ++requestIdCounter;
+      this._reqMethod = method;
+      this._reqUrl = url;
+      this._reqStart = Date.now();
+      return this._origOpen.apply(this, arguments);
+    };
+    OrigXHR.prototype.send = function(body) {
+      var xhr = this;
+      var log = { id: xhr._reqId, method: xhr._reqMethod, uri: cleanUrl(xhr._reqUrl), fullUrl: xhr._reqUrl,
+        requestParams: sanitize(body), createTime: fmtTime(), status: 0, responseBody: null, costTime: 0,
+        result: 'PENDING', channel: 'XHR', requestHeaders: null };
+      xhr.addEventListener('loadend', function() {
+        log.status = xhr.status;
+        log.costTime = Date.now() - xhr._reqStart;
+        log.result = (xhr.status >= 200 && xhr.status < 400) ? 'SUCCESS' : 'FAILURE';
+        log.errorMessage = xhr.status >= 400 ? ('HTTP ' + xhr.status) : null;
+        try { log.responseBody = sanitize(xhr.responseText); } catch(e) { log.responseBody = '[解析失败]'; }
+        if (enabled) notify(log);
+      });
+      return this._origSend.apply(this, arguments);
+    };
+
+    // ---- 拦截 fetch ----
+    var origFetch = window.fetch;
+    window.fetch = function(input, init) {
+      init = init || {};
+      var id = ++requestIdCounter;
+      var method = (init.method || 'GET').toUpperCase();
+      var url = typeof input === 'string' ? input : (input.url || '');
+      var startTime = Date.now();
+      var log = { id: id, method: method, uri: cleanUrl(url), fullUrl: url,
+        requestParams: sanitize(init.body), createTime: fmtTime(), requestHeaders: init.headers || null,
+        status: 0, responseBody: null, costTime: 0, result: 'PENDING', channel: 'FETCH' };
+      return origFetch.apply(window, arguments).then(function(resp) {
+        log.status = resp.status;
+        log.costTime = Date.now() - startTime;
+        log.result = resp.ok ? 'SUCCESS' : 'FAILURE';
+        log.errorMessage = resp.ok ? null : ('HTTP ' + resp.status);
+        resp.clone().text().then(function(t) { log.responseBody = sanitize(t);
+          if (enabled) notify(log); }).catch(function() { log.responseBody = '[无法读取]'; if (enabled) notify(log); });
+        return resp;
+      }).catch(function(err) {
+        log.status = 0; log.costTime = Date.now() - startTime;
+        log.result = 'FAILURE'; log.errorMessage = err.message;
+        if (enabled) notify(log); throw err;
+      });
+    };
+
+    window._lfToggle = function(){ expanded = !expanded; render(); };
+    window._lfToggleEnable = function(){ enabled = !enabled; render(); };
+    window._lfClear = function(){ logs = []; render(); };
+    window._lfFilter = function(v){ filterType = v; render(); };
+    window._lfShowDetail = function(id){
+      var log = null;
+      for(var i = 0; i < logs.length; i++){ if(logs[i].id === id){ log = logs[i]; break; } }
+      if(!log) return;
+      var detail = '请求URI: ' + (log.fullUrl || log.uri || '-') + '\n请求方式: ' + (log.method || '-') +
+        '\n状态码: ' + (log.status || '-') + '\n耗时: ' + (log.costTime > 0 ? log.costTime + 'ms' : '...') +
+        '\n通道: ' + (log.channel || '-') + '\n\n请求参数:\n' + (JSON.stringify(log.requestParams, null, 2) || '-') +
+        '\n\n响应内容:\n' + (JSON.stringify(log.responseBody, null, 2) || '-');
+      if (log.errorMessage) detail += '\n\n错误信息:\n' + log.errorMessage;
+      alert(detail);
+    };
+
+    var isResizing = false, sx, sy, sw, sh;
+    window._lfResizeStart = function(e){
+      isResizing = true; sx = e.clientX; sy = e.clientY; sw = w; sh = h;
+      document.addEventListener('mousemove', onResize); document.addEventListener('mouseup', stopResize);
+      e.preventDefault();
+    };
+    function onResize(e){
+      if(!isResizing) return;
+      w = Math.max(300, Math.min(800, sw - (e.clientX - sx)));
+      h = Math.max(200, Math.min(800, sh + (e.clientY - sy)));
+      render();
+    }
+    function stopResize(){ isResizing = false; document.removeEventListener('mousemove', onResize); document.removeEventListener('mouseup', stopResize); }
+
+    render();
+  })();
+  </script>
+  <style>
+  #log-float { position: fixed; bottom: 16px; right: 16px; z-index: 99999; font-family: 'Microsoft YaHei', sans-serif; }
+  .lf-panel { background: #fff; border: 1px solid #e0e0e0; border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.15); display: flex; flex-direction: column; overflow: hidden; }
+  .lf-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #2c3e50; color: #fff; user-select: none; flex-shrink: 0; }
+  .lf-title { font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+  .lf-badge { font-size: 10px; background: #e6a23c; color: #fff; padding: 1px 6px; border-radius: 10px; }
+  .lf-actions { display: flex; gap: 2px; }
+  .lf-btn { background: rgba(255,255,255,0.15); border: none; color: #fff; width: 24px; height: 24px; border-radius: 4px; cursor: pointer; font-size: 12px; padding: 0; display: flex; align-items: center; justify-content: center; }
+  .lf-btn:hover { background: rgba(255,255,255,0.3); }
+  .lf-body { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .lf-toolbar { padding: 4px 8px; background: #f5f7fa; border-bottom: 1px solid #eee; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+  .lf-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .lf-item { padding: 6px 10px; border-bottom: 1px solid #f0f0f0; cursor: pointer; font-size: 12px; }
+  .lf-item:hover { background: #f5f9ff; }
+  .lf-item.lf-error { background: #fff5f5; }
+  .lf-item.lf-error:hover { background: #ffebeb; }
+  .lf-item.lf-pending { background: #fefbe6; }
+  .lf-item-h { display: flex; align-items: center; gap: 6px; }
+  .lf-method { font-weight: 600; font-size: 11px; padding: 1px 4px; border-radius: 3px; min-width: 36px; text-align: center; }
+  .lf-m-GET { background: #e6f7e6; color: #52c41a; }
+  .lf-m-POST { background: #e6f0ff; color: #1890ff; }
+  .lf-m-PUT { background: #fff7e6; color: #fa8c16; }
+  .lf-m-DELETE { background: #ffe6e6; color: #f5222d; }
+  .lf-uri { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #333; }
+  .lf-cost { color: #999; font-size: 11px; white-space: nowrap; }
+  .lf-item-m { display: flex; gap: 8px; font-size: 11px; color: #999; margin-top: 2px; }
+  .lf-ok { color: #52c41a; } .lf-fail { color: #f5222d; } .lf-pend { color: #e6a23c; }
+  .lf-empty { text-align: center; padding: 20px; color: #ccc; font-size: 13px; }
+  .lf-resize { position: absolute; top: 0; left: 0; width: 6px; height: 100%; cursor: w-resize; }
+  .lf-resize:hover { background: rgba(0,0,0,0.05); }
+  .lf-panel { position: relative; }
+  </style>
+</body>
+</html>

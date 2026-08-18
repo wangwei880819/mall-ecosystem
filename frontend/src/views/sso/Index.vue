@@ -119,6 +119,9 @@
             <el-option label="API_KEY" value="API_KEY" />
           </el-select>
         </el-form-item>
+        <el-form-item label="访问地址" prop="url">
+          <el-input v-model="form.url" placeholder="例如：http://ecs-ip/mall" />
+        </el-form-item>
         <el-form-item label="平台图标">
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <div
@@ -169,7 +172,8 @@ const form = reactive({
   systemCode: '',
   authType: 'OAUTH',
   status: 'ACTIVE',
-  icon: '🔗'
+  icon: '🔗',
+  url: ''
 })
 
 const rules = {
@@ -231,7 +235,8 @@ const editPlatform = (platform) => {
     systemCode: platform.systemCode || platform.system || '',
     authType: platform.authType,
     status: platform.status,
-    icon: platform.icon
+    icon: platform.icon,
+    url: platform.url || ''
   })
   showAddModal.value = true
 }
@@ -239,7 +244,7 @@ const editPlatform = (platform) => {
 const closeModal = () => {
   showAddModal.value = false
   editingPlatform.value = null
-  Object.assign(form, { name: '', systemCode: '', authType: 'OAUTH', status: 'ACTIVE', icon: '🔗' })
+  Object.assign(form, { name: '', systemCode: '', authType: 'OAUTH', status: 'ACTIVE', icon: '🔗', url: '' })
 }
 
 const savePlatform = async () => {

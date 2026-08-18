@@ -123,7 +123,7 @@ const handleConfirm = async () => {
     } else {
       ElMessage.success('登录成功')
       setTimeout(() => {
-        router.push('/portal')
+        window.open('/admin/portal', '_blank')
       }, 500)
     }
   } catch (e) {

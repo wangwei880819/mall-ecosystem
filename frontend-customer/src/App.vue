@@ -16,8 +16,10 @@ const showTabBar = computed(() => {
 </script>
 
 <template>
-  <keep-alive include="Home,Cart,Profile">
-    <router-view :key="$route.fullPath" />
-  </keep-alive>
+  <router-view v-slot="{ Component }">
+    <keep-alive include="Home,Cart,Profile">
+      <component :is="Component" />
+    </keep-alive>
+  </router-view>
   <TabBar v-if="showTabBar" />
 </template>

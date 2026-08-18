@@ -1,0 +1,1 @@
+import{f as e}from"./risk-Di0ibiUr.js";var t=e.create({baseURL:`/api/risk`,timeout:15e3});t.interceptors.request.use(e=>{let t=localStorage.getItem(`sso_token`);return t&&(e.headers.Authorization=`Bearer ${t}`),e}),t.interceptors.response.use(e=>{let t=e.data;return t&&t.code===200?t.data:t},e=>(console.error(`API Error:`,e),Promise.reject(e)));export{t};

@@ -4,6 +4,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import java.util.HashMap;
@@ -13,9 +14,20 @@ import java.util.Map;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
+    public void addViewControllers(ViewControllerRegistry registry) {
+        registry.addViewController("/merchant/").setViewName("forward:/merchant/index.html");
+        registry.addViewController("/risk/").setViewName("forward:/risk/index.html");
+    }
+
+    @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + System.getProperty("user.dir") + "/uploads/");
+        // 托管商户入驻平台和风控平台前端静态文件
+        registry.addResourceHandler("/merchant/**")
+                .addResourceLocations("file:///Users/wangwei/WorkBuddy/2026-07-23-09-20-10/mall-ecosystem/deploy/frontend/merchant/");
+        registry.addResourceHandler("/risk/**")
+                .addResourceLocations("file:///Users/wangwei/WorkBuddy/2026-07-23-09-20-10/mall-ecosystem/deploy/frontend/risk/");
     }
 
     @Override

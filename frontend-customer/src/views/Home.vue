@@ -157,7 +157,8 @@ function goDetail(id) {
 // ========== 生命周期 ==========
 onMounted(async () => {
   loadHistory()
-  await fetchCategoryTree()
+  // 分类和商品并行加载，互不阻塞
+  fetchCategoryTree()
   await fetchProducts(true)
 })
 </script>

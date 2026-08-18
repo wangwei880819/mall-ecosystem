@@ -13,6 +13,7 @@ const routes = [
   { path: '/merchant/business-audit', name: 'BusinessAudit', component: () => import('../views/onboarding/BusinessAudit.vue'), meta: { title: '业务复审', icon: '📋', parent: 'Merchant' } },
   { path: '/merchant/compliance-audit', name: 'ComplianceAudit', component: () => import('../views/onboarding/ComplianceAudit.vue'), meta: { title: '合规终审', icon: '🔍', parent: 'Merchant' } },
   { path: '/merchant/contract-audit', name: 'ContractAudit', component: () => import('../views/onboarding/ContractAudit.vue'), meta: { title: '合同签署', icon: '📝', parent: 'Merchant' } },
+  { path: '/merchant/contract-manage', name: 'ContractManage', component: () => import('../views/onboarding/ContractManage.vue'), meta: { title: '合同管理', icon: '📋', parent: 'Merchant' } },
   { path: '/merchant/payment-audit', name: 'PaymentAudit', component: () => import('../views/onboarding/PaymentAudit.vue'), meta: { title: '支付进件', icon: '💳', parent: 'Merchant' } },
   { path: '/merchant/detail/:id', name: 'MerchantDetail', component: () => import('../views/onboarding/Merchant.vue'), meta: { title: '商户详情', icon: '🔍', parent: 'Merchant' } },
   
@@ -24,6 +25,7 @@ const routes = [
   { path: '/product', name: 'Product', component: () => import('../views/onboarding/Product.vue'), meta: { title: '商品管理', icon: '📦' } },
   { path: '/product/list', name: 'ProductList', component: () => import('../views/onboarding/Product.vue'), meta: { title: '商品列表', icon: '📋', parent: 'Product' } },
   { path: '/product/audit', name: 'ProductAudit', component: () => import('../views/onboarding/ProductAudit.vue'), meta: { title: '商品审核', icon: '✅', parent: 'Product' } },
+  { path: '/product/audit-2', name: 'ProductAudit2', component: () => import('../views/onboarding/ProductAudit2.vue'), meta: { title: '二级选品审核', icon: '✅', parent: 'Product' } },
   { path: '/product/category', name: 'ProductCategory', component: () => import('../views/product/ProductCategory.vue'), meta: { title: '分类管理', icon: '📂', parent: 'Product' } },
   { path: '/product/stock', name: 'ProductStock', component: () => import('../views/product/ProductStock.vue'), meta: { title: '库存管理', icon: '📦', parent: 'Product' } },
   { path: '/product/benefit', name: 'Benefit', component: () => import('../views/onboarding/Benefit.vue'), meta: { title: '权益引入', icon: '🎁', parent: 'Product' } },
@@ -37,6 +39,8 @@ const routes = [
   { path: '/finance/settlement', name: 'FinanceSettlement', component: () => import('../views/settlement/Index.vue'), meta: { title: '结算管理', icon: '📊', parent: 'Finance' } },
   { path: '/finance/invoice', name: 'FinanceInvoice', component: () => import('../views/finance/FinanceInvoice.vue'), meta: { title: '发票管理', icon: '📄', parent: 'Finance' } },
   { path: '/finance/reconciliation', name: 'FinanceReconciliation', component: () => import('../views/finance/FinanceReconciliation.vue'), meta: { title: '对账管理', icon: '🔍', parent: 'Finance' } },
+  { path: '/finance/deposit', name: 'FinanceDeposit', component: () => import('../views/finance/Deposit.vue'), meta: { title: '保证金管理', icon: '💰', parent: 'Finance' } },
+  { path: '/finance/commission', name: 'FinanceCommission', component: () => import('../views/finance/CommissionConfig.vue'), meta: { title: '佣金配置', icon: '⚙️', parent: 'Finance' } },
   
   { path: '/risk', name: 'Risk', component: () => import('../views/audit/Index.vue'), meta: { title: '风险管理', icon: '🛡️' } },
   { path: '/risk/rules', name: 'RiskRules', component: () => import('../views/audit/Index.vue'), meta: { title: '规则管理', icon: '📋', parent: 'Risk' } },
@@ -51,6 +55,10 @@ const routes = [
   { path: '/system/roles', name: 'RoleManage', component: () => import('../views/system/RoleManage.vue'), meta: { title: '角色管理', icon: '🎭', parent: 'System' } },
   { path: '/system/menus', name: 'MenuManage', component: () => import('../views/system/MenuManage.vue'), meta: { title: '菜单管理', icon: '📑', parent: 'System' } },
   { path: '/system/platforms', name: 'PlatformManage', component: () => import('../views/sso/Index.vue'), meta: { title: '接入平台管理', icon: '🔗', parent: 'System' } },
+  { path: '/system/logs', name: 'LogManage', component: () => import('../views/system/LogManage.vue'), meta: { title: '日志管理', icon: '📋', parent: 'System' } },
+  
+  { path: '/crm', name: 'CRM', component: () => import('../views/crm/CrmLeads.vue'), meta: { title: '招商CRM', icon: '🎯' } },
+  { path: '/crm/leads', name: 'CrmLeads', component: () => import('../views/crm/CrmLeads.vue'), meta: { title: '线索管理', icon: '🎯', parent: 'CRM' } },
   
   { path: '/cconfig', name: 'CConfig', component: () => import('../views/cconfig/HomeConfig.vue'), meta: { title: 'C端配置', icon: '⚙️' } },
   { path: '/cconfig/banners', name: 'BannerManage', component: () => import('../views/cconfig/BannerManage.vue'), meta: { title: '轮播图管理', icon: '🎠', parent: 'CConfig' } },
@@ -66,7 +74,7 @@ const routes = [
 ]
 
 const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHistory('/admin'),
   routes
 })
 

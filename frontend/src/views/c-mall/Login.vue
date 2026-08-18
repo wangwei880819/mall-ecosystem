@@ -47,7 +47,7 @@
       </div>
 
       <div class="register-link">
-        还没有账号? <a href="/mall/register">立即注册</a>
+        还没有账号? <a href="/admin/mall/register">立即注册</a>
       </div>
     </div>
   </div>

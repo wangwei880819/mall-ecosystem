@@ -102,10 +102,10 @@ public class DataInitializer implements CommandLineRunner {
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_menu", Integer.class);
         if (count != null && count > 0) {
             // 已有数据，只检查并补充缺失的菜单
-            // 检查缺失的"商品审核"菜单
+            // 检查缺失的"一级选品审核"菜单
             Integer auditCount = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND path = ?",
-                    Integer.class, "商品审核", "/product/audit");
+                    Integer.class, "一级选品审核", "/product/audit");
             if (auditCount != null && auditCount == 0) {
                 Long parentId = jdbcTemplate.queryForObject(
                         "SELECT id FROM sys_menu WHERE menu_name = ? AND (parent_id = 0 OR parent_id IS NULL) LIMIT 1",
@@ -113,8 +113,24 @@ public class DataInitializer implements CommandLineRunner {
                 if (parentId != null) {
                     jdbcTemplate.update(
                             "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                            parentId, "商品审核", "MENU", "/product/audit", "✅", 2, 1, 0, "ACTIVE");
-                    log.info("已补充缺失的「商品审核」菜单");
+                            parentId, "一级选品审核", "MENU", "/product/audit", "✅", 2, 1, 0, "ACTIVE");
+                    log.info("已补充缺失的「一级选品审核」菜单");
+                }
+            }
+
+            // 检查缺失的"二级选品审核"菜单
+            Integer secondAuditCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND path = ?",
+                    Integer.class, "二级选品审核", "/product/audit-2");
+            if (secondAuditCount != null && secondAuditCount == 0) {
+                Long parentId = jdbcTemplate.queryForObject(
+                        "SELECT id FROM sys_menu WHERE menu_name = ? AND (parent_id = 0 OR parent_id IS NULL) LIMIT 1",
+                        Long.class, "商品管理");
+                if (parentId != null) {
+                    jdbcTemplate.update(
+                            "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            parentId, "二级选品审核", "MENU", "/product/audit-2", "✅", 3, 1, 0, "ACTIVE");
+                    log.info("已补充缺失的「二级选品审核」菜单");
                 }
             }
 
@@ -131,6 +147,80 @@ public class DataInitializer implements CommandLineRunner {
                             "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
                             aiParentId, "模型配置", "MENU", "/ai/config", "⚙️", 1, 1, 0, "ACTIVE");
                     log.info("已补充缺失的「模型配置」菜单");
+                }
+            }
+
+            // 检查缺失的"合同管理"菜单
+            Integer contractManageCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND path = ?",
+                    Integer.class, "合同管理", "/merchant/contract-manage");
+            if (contractManageCount != null && contractManageCount == 0) {
+                Long merchantParentId = jdbcTemplate.queryForObject(
+                        "SELECT id FROM sys_menu WHERE menu_name = ? AND (parent_id = 0 OR parent_id IS NULL) LIMIT 1",
+                        Long.class, "商户管理");
+                if (merchantParentId != null) {
+                    jdbcTemplate.update(
+                            "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            merchantParentId, "合同管理", "MENU", "/merchant/contract-manage", "📑", 7, 1, 0, "ACTIVE");
+                    log.info("已补充缺失的「合同管理」菜单");
+                }
+            }
+
+            // 检查缺失的"保证金管理"菜单
+            Integer depositCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND path = ?",
+                    Integer.class, "保证金管理", "/finance/deposit");
+            if (depositCount != null && depositCount == 0) {
+                Long financeParentId = jdbcTemplate.queryForObject(
+                        "SELECT id FROM sys_menu WHERE menu_name = ? AND (parent_id = 0 OR parent_id IS NULL) LIMIT 1",
+                        Long.class, "财务管理");
+                if (financeParentId != null) {
+                    jdbcTemplate.update(
+                            "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            financeParentId, "保证金管理", "MENU", "/finance/deposit", "💰", 4, 1, 0, "ACTIVE");
+                    log.info("已补充缺失的「保证金管理」菜单");
+                }
+            }
+
+            // 检查缺失的"佣金配置"菜单
+            Integer commissionCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND path = ?",
+                    Integer.class, "佣金配置", "/finance/commission");
+            if (commissionCount != null && commissionCount == 0) {
+                Long financeParentId = jdbcTemplate.queryForObject(
+                        "SELECT id FROM sys_menu WHERE menu_name = ? AND (parent_id = 0 OR parent_id IS NULL) LIMIT 1",
+                        Long.class, "财务管理");
+                if (financeParentId != null) {
+                    jdbcTemplate.update(
+                            "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            financeParentId, "佣金配置", "MENU", "/finance/commission", "⚙️", 5, 1, 0, "ACTIVE");
+                    log.info("已补充缺失的「佣金配置」菜单");
+                }
+            }
+
+            // 检查缺失的"招商CRM"一级菜单
+            Integer crmCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND (parent_id = 0 OR parent_id IS NULL)",
+                    Integer.class, "招商CRM");
+            if (crmCount != null && crmCount == 0) {
+                jdbcTemplate.update(
+                        "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (0, '招商CRM', 'DIRECTORY', '/crm', '🎯', 11, 1, 0, 'ACTIVE')");
+                log.info("已补充缺失的「招商CRM」一级菜单");
+            }
+
+            // 检查缺失的"线索管理"菜单
+            Integer leadCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_menu WHERE menu_name = ? AND path = ?",
+                    Integer.class, "线索管理", "/crm/leads");
+            if (leadCount != null && leadCount == 0) {
+                Long crmParentId = jdbcTemplate.queryForObject(
+                        "SELECT id FROM sys_menu WHERE menu_name = ? AND (parent_id = 0 OR parent_id IS NULL) LIMIT 1",
+                        Long.class, "招商CRM");
+                if (crmParentId != null) {
+                    jdbcTemplate.update(
+                            "INSERT INTO sys_menu (parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                            crmParentId, "线索管理", "MENU", "/crm/leads", "🎯", 1, 1, 0, "ACTIVE");
+                    log.info("已补充缺失的「线索管理」菜单");
                 }
             }
             return;
@@ -158,6 +248,7 @@ public class DataInitializer implements CommandLineRunner {
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (33, 2, '合规终审', 'MENU', '/merchant/compliance-audit', '🔍', 4, 1, 0, 'ACTIVE')");
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (34, 2, '合同签署', 'MENU', '/merchant/contract-audit', '📝', 5, 1, 0, 'ACTIVE')");
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (35, 2, '支付进件', 'MENU', '/merchant/payment-audit', '💳', 6, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (42, 2, '合同管理', 'MENU', '/merchant/contract-manage', '📑', 7, 1, 0, 'ACTIVE')");
 
         // 客户管理子菜单
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (13, 3, '客户列表', 'MENU', '/customer/list', '📋', 1, 1, 0, 'ACTIVE')");
@@ -165,10 +256,11 @@ public class DataInitializer implements CommandLineRunner {
 
         // 商品管理子菜单（含商品审核）
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (16, 4, '商品列表', 'MENU', '/product/list', '📋', 1, 1, 0, 'ACTIVE')");
-        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (36, 4, '商品审核', 'MENU', '/product/audit', '✅', 2, 1, 0, 'ACTIVE')");
-        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (17, 4, '分类管理', 'MENU', '/product/category', '📂', 3, 1, 0, 'ACTIVE')");
-        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (18, 4, '库存管理', 'MENU', '/product/stock', '📦', 4, 1, 0, 'ACTIVE')");
-        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (19, 4, '权益引入', 'MENU', '/product/benefit', '🎁', 5, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (36, 4, '一级选品审核', 'MENU', '/product/audit', '✅', 2, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (47, 4, '二级选品审核', 'MENU', '/product/audit-2', '✅', 3, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (17, 4, '分类管理', 'MENU', '/product/category', '📂', 4, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (18, 4, '库存管理', 'MENU', '/product/stock', '📦', 5, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (19, 4, '权益引入', 'MENU', '/product/benefit', '🎁', 6, 1, 0, 'ACTIVE')");
 
         // 订单管理子菜单
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (20, 5, '订单列表', 'MENU', '/order/list', '📋', 1, 1, 0, 'ACTIVE')");
@@ -180,6 +272,8 @@ public class DataInitializer implements CommandLineRunner {
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (23, 6, '结算管理', 'MENU', '/finance/settlement', '📊', 1, 1, 0, 'ACTIVE')");
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (24, 6, '发票管理', 'MENU', '/finance/invoice', '📄', 2, 1, 0, 'ACTIVE')");
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (25, 6, '对账管理', 'MENU', '/finance/reconciliation', '🔍', 3, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (43, 6, '保证金管理', 'MENU', '/finance/deposit', '💰', 4, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (44, 6, '佣金配置', 'MENU', '/finance/commission', '⚙️', 5, 1, 0, 'ACTIVE')");
 
         // 风险管理子菜单
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (26, 7, '规则管理', 'MENU', '/risk/rules', '📋', 1, 1, 0, 'ACTIVE')");
@@ -191,6 +285,10 @@ public class DataInitializer implements CommandLineRunner {
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (30, 8, '角色管理', 'MENU', '/system/roles', '🎭', 2, 1, 0, 'ACTIVE')");
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (31, 8, '菜单管理', 'MENU', '/system/menus', '📑', 3, 1, 0, 'ACTIVE')");
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (38, 8, '接入平台', 'MENU', '/system/platforms', '🔗', 4, 1, 0, 'ACTIVE')");
+
+        // 招商CRM子菜单
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (45, 0, '招商CRM', 'DIRECTORY', '/crm', '🎯', 11, 1, 0, 'ACTIVE')");
+        jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (46, 45, '线索管理', 'MENU', '/crm/leads', '🎯', 1, 1, 0, 'ACTIVE')");
 
         // C端配置子菜单
         jdbcTemplate.update("INSERT INTO sys_menu (id, parent_id, menu_name, menu_type, path, icon, sort_order, visible, keep_alive, status) VALUES (39, 9, '轮播图管理', 'MENU', '/cconfig/banners', '🎠', 1, 1, 0, 'ACTIVE')");
@@ -204,17 +302,17 @@ public class DataInitializer implements CommandLineRunner {
     private void initRoleMenus() {
         Integer count = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM sys_role_menu", Integer.class);
         if (count != null && count > 0) {
-            // 已有角色菜单关联，检查商品审核是否关联了管理员角色
+            // 已有角色菜单关联，检查一级选品审核是否关联了管理员角色
             Integer auditMenuCount = jdbcTemplate.queryForObject(
                     "SELECT COUNT(*) FROM sys_role_menu rm " +
                     "JOIN sys_menu m ON rm.menu_id = m.id " +
                     "WHERE m.menu_name = ? AND m.path = ?",
-                    Integer.class, "商品审核", "/product/audit");
+                    Integer.class, "一级选品审核", "/product/audit");
             if (auditMenuCount == null || auditMenuCount == 0) {
-                // 获取商品审核菜单ID和管理员角色ID
+                // 获取一级选品审核菜单ID和管理员角色ID
                 Long menuId = jdbcTemplate.queryForObject(
                         "SELECT id FROM sys_menu WHERE menu_name = ? AND path = ? LIMIT 1",
-                        Long.class, "商品审核", "/product/audit");
+                        Long.class, "一级选品审核", "/product/audit");
                 List<Long> roleIds = jdbcTemplate.queryForList(
                         "SELECT id FROM sys_role WHERE role_code = 'SUPER_ADMIN'", Long.class);
                 if (menuId != null && !roleIds.isEmpty()) {
@@ -223,7 +321,29 @@ public class DataInitializer implements CommandLineRunner {
                                 "INSERT INTO sys_role_menu (role_id, menu_id) VALUES (?, ?)",
                                 roleId, menuId);
                     }
-                    log.info("已为管理员角色授权「商品审核」菜单");
+                    log.info("已为管理员角色授权「一级选品审核」菜单");
+                }
+            }
+
+            // 检查二级选品审核是否关联了管理员角色
+            Integer secondAuditMenuCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM sys_role_menu rm " +
+                    "JOIN sys_menu m ON rm.menu_id = m.id " +
+                    "WHERE m.menu_name = ? AND m.path = ?",
+                    Integer.class, "二级选品审核", "/product/audit-2");
+            if (secondAuditMenuCount == null || secondAuditMenuCount == 0) {
+                Long menuId = jdbcTemplate.queryForObject(
+                        "SELECT id FROM sys_menu WHERE menu_name = ? AND path = ? LIMIT 1",
+                        Long.class, "二级选品审核", "/product/audit-2");
+                List<Long> roleIds = jdbcTemplate.queryForList(
+                        "SELECT id FROM sys_role WHERE role_code = 'SUPER_ADMIN'", Long.class);
+                if (menuId != null && !roleIds.isEmpty()) {
+                    for (Long roleId : roleIds) {
+                        jdbcTemplate.update(
+                                "INSERT INTO sys_role_menu (role_id, menu_id) VALUES (?, ?)",
+                                roleId, menuId);
+                    }
+                    log.info("已为管理员角色授权「二级选品审核」菜单");
                 }
             }
 
@@ -246,6 +366,34 @@ public class DataInitializer implements CommandLineRunner {
                                 roleId, menuId);
                     }
                     log.info("已为管理员角色授权「模型配置」菜单");
+                }
+            }
+
+            // 检查并授权新增菜单（合同管理、保证金管理、佣金配置、招商CRM、线索管理）
+            String[] newMenuNames = {"合同管理", "保证金管理", "佣金配置", "线索管理"};
+            String[] newMenuPaths = {"/merchant/contract-manage", "/finance/deposit", "/finance/commission", "/crm/leads"};
+            for (int i = 0; i < newMenuNames.length; i++) {
+                String menuName = newMenuNames[i];
+                String menuPath = newMenuPaths[i];
+                Integer c = jdbcTemplate.queryForObject(
+                        "SELECT COUNT(*) FROM sys_role_menu rm " +
+                        "JOIN sys_menu m ON rm.menu_id = m.id " +
+                        "WHERE m.menu_name = ? AND m.path = ?",
+                        Integer.class, menuName, menuPath);
+                if (c == null || c == 0) {
+                    Long menuId = jdbcTemplate.queryForObject(
+                            "SELECT id FROM sys_menu WHERE menu_name = ? AND path = ? LIMIT 1",
+                            Long.class, menuName, menuPath);
+                    List<Long> roleIds = jdbcTemplate.queryForList(
+                            "SELECT id FROM sys_role WHERE role_code = 'SUPER_ADMIN'", Long.class);
+                    if (menuId != null && !roleIds.isEmpty()) {
+                        for (Long roleId : roleIds) {
+                            jdbcTemplate.update(
+                                    "INSERT INTO sys_role_menu (role_id, menu_id) VALUES (?, ?)",
+                                    roleId, menuId);
+                        }
+                        log.info("已为管理员角色授权「{}」菜单", menuName);
+                    }
                 }
             }
             return;

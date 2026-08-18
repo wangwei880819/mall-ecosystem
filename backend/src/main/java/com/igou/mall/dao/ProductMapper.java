@@ -39,8 +39,24 @@ public interface ProductMapper {
     @Options(useGeneratedKeys = true, keyProperty = "id")
     int insert(Product product);
 
-    @Update("UPDATE product SET product_name=#{productName}, description=#{description}, detail=#{detail}, category=#{category}, category_id=#{categoryId}, brand=#{brand}, merchant_id=#{merchantId}, merchant_name=#{merchantName}, price=#{price}, market_price=#{marketPrice}, vip_price=#{vipPrice}, stock=#{stock}, sales_count=#{salesCount}, avg_score=#{avgScore}, image_urls=#{imageUrls}, status=#{status}, reject_reason=#{rejectReason}, approve_reason=#{approveReason}, auditor=#{auditor}, audit_time=#{auditTime}, update_time=NOW() WHERE id=#{id}")
+    @Update("UPDATE product SET product_name=#{productName}, description=#{description}, detail=#{detail}, category=#{category}, category_id=#{categoryId}, brand=#{brand}, merchant_id=#{merchantId}, merchant_name=#{merchantName}, price=#{price}, market_price=#{marketPrice}, vip_price=#{vipPrice}, stock=#{stock}, sales_count=#{salesCount}, avg_score=#{avgScore}, image_urls=#{imageUrls}, status=#{status}, reject_reason=#{rejectReason}, approve_reason=#{approveReason}, auditor=#{auditor}, audit_time=#{auditTime}, review_level=#{reviewLevel}, level1_audit_time=#{level1AuditTime}, level1_auditor=#{level1Auditor}, level2_audit_time=#{level2AuditTime}, level2_auditor=#{level2Auditor}, update_time=NOW() WHERE id=#{id}")
     int update(Product product);
+
+    @Select("SELECT * FROM product WHERE status='PENDING' AND (review_level IS NULL OR review_level = 0) ORDER BY create_time DESC")
+    List<Product> findLevel1AuditList();
+
+    @Select("SELECT * FROM product WHERE status='ONE_PASSED' AND review_level = 1 ORDER BY level1_audit_time DESC")
+    List<Product> findLevel2AuditList();
+
+    @Update("UPDATE product SET status=#{status}, review_level=#{reviewLevel}, level1_audit_time=#{level1AuditTime}, level1_auditor=#{level1Auditor}, auditor=#{auditor}, audit_time=NOW(), update_time=NOW() WHERE id=#{id}")
+    int auditLevel1(@Param("id") Long id, @Param("status") String status, @Param("reviewLevel") Integer reviewLevel,
+                    @Param("level1AuditTime") java.time.LocalDateTime level1AuditTime, @Param("level1Auditor") String level1Auditor,
+                    @Param("auditor") String auditor);
+
+    @Update("UPDATE product SET status=#{status}, review_level=#{reviewLevel}, level2_audit_time=#{level2AuditTime}, level2_auditor=#{level2Auditor}, auditor=#{auditor}, audit_time=NOW(), update_time=NOW() WHERE id=#{id}")
+    int auditLevel2(@Param("id") Long id, @Param("status") String status, @Param("reviewLevel") Integer reviewLevel,
+                    @Param("level2AuditTime") java.time.LocalDateTime level2AuditTime, @Param("level2Auditor") String level2Auditor,
+                    @Param("auditor") String auditor);
 
     @Update("UPDATE product SET stock = stock + #{quantity}, update_time=NOW() WHERE id=#{id}")
     int updateStock(@Param("id") Long id, @Param("quantity") int quantity);

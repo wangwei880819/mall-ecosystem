@@ -7,7 +7,7 @@ import { Plus } from '@element-plus/icons-vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 
 const merchantStore = useMerchantStore()
-const merchantId = computed(() => merchantStore.merchantInfo?.merchant?.id || '')
+const merchantId = computed(() => merchantStore.merchantInfo?.id || merchantStore.merchantInfo?.merchant?.id || '')
 const selectedCategoryName = computed(() => {
   const cat = categories.value.find(c => (c.id || c.categoryId) === productForm.value.categoryId)
   return cat ? (cat.categoryName || cat.name || '') : ''
@@ -366,7 +366,7 @@ async function handleBenefitCreate() {
 
   benefitSubmitting.value = true
   try {
-    await http.post('/benefit', {
+    await http.post('/merchant-portal/benefit', {
       ...benefitForm.value,
       merchantId: merchantId.value,
       price: parseFloat(benefitForm.value.price) || 0,

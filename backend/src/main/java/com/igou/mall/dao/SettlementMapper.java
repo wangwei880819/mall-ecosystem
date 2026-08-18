@@ -15,24 +15,50 @@ public interface SettlementMapper {
             "SELECT * FROM settlement WHERE 1=1 " +
             "<if test='merchantId != null'>AND merchant_id = #{merchantId}</if> " +
             "<if test='status != null'>AND status = #{status}</if> " +
+            "<if test='settleType != null and settleType != \"\"'>AND settle_type = #{settleType}</if> " +
+            "<if test='startTime != null'>AND create_time &gt;= #{startTime}</if> " +
+            "<if test='endTime != null'>AND create_time &lt;= #{endTime}</if> " +
             "ORDER BY create_time DESC LIMIT #{offset}, #{limit}" +
             "</script>")
     List<Settlement> findPage(@Param("offset") Integer offset, @Param("limit") Integer limit,
-                              @Param("merchantId") Long merchantId, @Param("status") String status);
+                              @Param("merchantId") Long merchantId, @Param("status") String status,
+                              @Param("settleType") String settleType,
+                              @Param("startTime") String startTime, @Param("endTime") String endTime);
 
     @Select("<script>" +
             "SELECT COUNT(*) FROM settlement WHERE 1=1 " +
             "<if test='merchantId != null'>AND merchant_id = #{merchantId}</if> " +
-            "<if test='status != null'>AND status = #{status}</if>" +
+            "<if test='status != null'>AND status = #{status}</if> " +
+            "<if test='settleType != null and settleType != \"\"'>AND settle_type = #{settleType}</if> " +
+            "<if test='startTime != null'>AND create_time &gt;= #{startTime}</if> " +
+            "<if test='endTime != null'>AND create_time &lt;= #{endTime}</if>" +
             "</script>")
-    Integer count(@Param("merchantId") Long merchantId, @Param("status") String status);
+    Integer count(@Param("merchantId") Long merchantId, @Param("status") String status,
+                  @Param("settleType") String settleType,
+                  @Param("startTime") String startTime, @Param("endTime") String endTime);
 
     @Select("<script>" +
             "SELECT COALESCE(SUM(total_amount), 0) FROM settlement WHERE 1=1 " +
             "<if test='merchantId != null'>AND merchant_id = #{merchantId}</if> " +
-            "<if test='status != null'>AND status = #{status}</if>" +
+            "<if test='status != null'>AND status = #{status}</if> " +
+            "<if test='settleType != null and settleType != \"\"'>AND settle_type = #{settleType}</if> " +
+            "<if test='startTime != null'>AND create_time &gt;= #{startTime}</if> " +
+            "<if test='endTime != null'>AND create_time &lt;= #{endTime}</if>" +
             "</script>")
-    BigDecimal sumAmount(@Param("merchantId") Long merchantId, @Param("status") String status);
+    BigDecimal sumAmount(@Param("merchantId") Long merchantId, @Param("status") String status,
+                         @Param("settleType") String settleType,
+                         @Param("startTime") String startTime, @Param("endTime") String endTime);
+
+    @Select("<script>" +
+            "SELECT * FROM settlement WHERE 1=1 " +
+            "<if test='settleType != null and settleType != \"\"'>AND settle_type = #{settleType}</if> " +
+            "<if test='startTime != null'>AND create_time &gt;= #{startTime}</if> " +
+            "<if test='endTime != null'>AND create_time &lt;= #{endTime}</if> " +
+            "ORDER BY create_time DESC" +
+            "</script>")
+    List<Settlement> findAllForExport(@Param("settleType") String settleType,
+                                      @Param("startTime") String startTime,
+                                      @Param("endTime") String endTime);
 
     @Select("SELECT COALESCE(SUM(total_amount), 0) FROM settlement WHERE status = 'COMPLETED'")
     BigDecimal sumCompletedAmount();

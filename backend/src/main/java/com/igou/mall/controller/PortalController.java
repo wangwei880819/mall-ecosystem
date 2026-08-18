@@ -25,7 +25,7 @@ public class PortalController {
     public Result<Map<String, Object>> dashboard() {
         Map<String, Object> data = new HashMap<>();
         data.put("merchantTotal", merchantMapper.count());
-        data.put("pendingSettlements", settlementMapper.count(null, "PENDING"));
+        data.put("pendingSettlements", settlementMapper.count(null, "PENDING", null, null, null));
         data.put("highRiskAudits", 0);
         data.put("negativeReviews", evaluationMapper.negativeCount());
         return Result.success(data);

@@ -251,37 +251,69 @@
     </el-dialog>
 
     <!-- 查看详情弹窗 -->
-    <el-dialog v-model="showDetailDialog" title="商户详情" width="700px">
-      <el-descriptions :column="2" border v-if="selectedMerchant">
-        <el-descriptions-item label="商户编号" :span="2">{{ selectedMerchant.merchantCode || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="企业名称">{{ selectedMerchant.merchantName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="商户类型">{{ getTypeText(selectedMerchant.merchantType) }}</el-descriptions-item>
-        <el-descriptions-item label="统一社会信用代码">{{ selectedMerchant.creditCode || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="所属行业">{{ selectedMerchant.industry || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="法人代表">{{ selectedMerchant.legalPerson || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="法人身份证">{{ selectedMerchant.legalPersonId || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="注册资本">{{ selectedMerchant.registeredCapital || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="经营范围" :span="2">{{ selectedMerchant.businessScope || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="商标注册号">{{ selectedMerchant.trademarkNo || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="授权链路">{{ selectedMerchant.authChain || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="品类匹配" :span="2">{{ selectedMerchant.categoryMatch || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="联系人">{{ selectedMerchant.contactName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="联系电话">{{ selectedMerchant.contactPhone || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="省">{{ selectedMerchant.province || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="市">{{ selectedMerchant.city || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="区">{{ selectedMerchant.district || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="详细地址">{{ selectedMerchant.address || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="开户银行">{{ selectedMerchant.bankName || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="银行账号">{{ selectedMerchant.bankAccount || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="税号">{{ selectedMerchant.taxNumber || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="信用评分">{{ selectedMerchant.creditScore || '-' }}</el-descriptions-item>
-        <el-descriptions-item label="入驻状态">
-          <el-tag :type="getStatusTagType(selectedMerchant.onboardingStatus)">
-            {{ getStatusText(selectedMerchant.onboardingStatus) }}
-          </el-tag>
-        </el-descriptions-item>
-        <el-descriptions-item label="申请日期">{{ selectedMerchant.createTime || '-' }}</el-descriptions-item>
-      </el-descriptions>
+    <el-dialog v-model="showDetailDialog" title="商户详情" width="800px" @open="fetchAuditLogs">
+      <el-tabs v-model="detailTab" v-if="selectedMerchant">
+        <el-tab-pane label="基本信息" name="basic">
+          <el-descriptions :column="2" border>
+            <el-descriptions-item label="商户编号" :span="2">{{ selectedMerchant.merchantCode || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="企业名称">{{ selectedMerchant.merchantName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="商户类型">{{ getTypeText(selectedMerchant.merchantType) }}</el-descriptions-item>
+            <el-descriptions-item label="统一社会信用代码">{{ selectedMerchant.creditCode || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="所属行业">{{ selectedMerchant.industry || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="法人代表">{{ selectedMerchant.legalPerson || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="法人身份证">{{ selectedMerchant.legalPersonId || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="注册资本">{{ selectedMerchant.registeredCapital || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="经营范围" :span="2">{{ selectedMerchant.businessScope || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="商标注册号">{{ selectedMerchant.trademarkNo || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="授权链路">{{ selectedMerchant.authChain || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="品类匹配" :span="2">{{ selectedMerchant.categoryMatch || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="联系人">{{ selectedMerchant.contactName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="联系电话">{{ selectedMerchant.contactPhone || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="省">{{ selectedMerchant.province || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="市">{{ selectedMerchant.city || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="区">{{ selectedMerchant.district || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="详细地址">{{ selectedMerchant.address || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="开户银行">{{ selectedMerchant.bankName || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="银行账号">{{ selectedMerchant.bankAccount || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="税号">{{ selectedMerchant.taxNumber || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="信用评分">{{ selectedMerchant.creditScore || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="入驻状态">
+              <el-tag :type="getStatusTagType(selectedMerchant.onboardingStatus)">
+                {{ getStatusText(selectedMerchant.onboardingStatus) }}
+              </el-tag>
+            </el-descriptions-item>
+            <el-descriptions-item label="申请日期">{{ selectedMerchant.createTime || '-' }}</el-descriptions-item>
+          </el-descriptions>
+        </el-tab-pane>
+        <el-tab-pane label="审核记录" name="audit">
+          <el-timeline v-if="auditLogs.length > 0">
+            <el-timeline-item
+              v-for="log in auditLogs"
+              :key="log.id"
+              :timestamp="formatTime(log.createTime)"
+              placement="top"
+              :color="log.action === 'REJECTED' ? '#f56c6c' : log.action === 'RESUBMIT' ? '#409eff' : '#67c23a'"
+            >
+              <div class="audit-log-item">
+                <span class="audit-node">{{ getNodeText(log.auditNode) }}</span>
+                <el-tag
+                  :type="log.action === 'REJECTED' ? 'danger' : log.action === 'RESUBMIT' ? '' : 'success'"
+                  size="small"
+                  style="margin-left:8px"
+                >
+                  {{ log.action === 'APPROVED' ? '通过' : log.action === 'REJECTED' ? '驳回' : log.action === 'RESUBMIT' ? '重新提交' : log.action }}
+                </el-tag>
+                <div style="margin-top:4px;color:#666;font-size:13px">
+                  <span>操作人：{{ log.operator || '-' }}</span>
+                </div>
+                <div v-if="log.comment" style="color:#999;font-size:12px;margin-top:2px">{{ log.comment }}</div>
+                <div v-if="log.rejectReason" style="color:#f56c6c;font-size:12px;margin-top:2px">驳回原因：{{ log.rejectReason }}</div>
+              </div>
+            </el-timeline-item>
+          </el-timeline>
+          <el-empty v-else description="暂无审核记录" />
+        </el-tab-pane>
+      </el-tabs>
       <template #footer>
       </template>
     </el-dialog>
@@ -300,6 +332,8 @@ const loading = ref(false)
 const submitLoading = ref(false)
 const showDialog = ref(false)
 const showDetailDialog = ref(false)
+const detailTab = ref('basic')
+const auditLogs = ref([])
 const merchantFormRef = ref()
 const merchants = ref([])
 const editingMerchant = ref(null)
@@ -496,7 +530,23 @@ const editMerchant = (row) => {
 
 const viewMerchant = (row) => {
   selectedMerchant.value = row
+  detailTab.value = 'basic'
+  auditLogs.value = []
   showDetailDialog.value = true
+}
+
+const fetchAuditLogs = async () => {
+  if (!selectedMerchant.value?.id) return
+  try {
+    const res = await request.get(`/merchant/${selectedMerchant.value.id}/audit-logs`)
+    if (res.code === 200) auditLogs.value = res.data || []
+  } catch { auditLogs.value = [] }
+}
+
+const formatTime = (t) => {
+  if (!t) return '-'
+  const s = typeof t === 'string' ? t : t.toString()
+  return s.length >= 16 ? s.substring(0, 16) : s
 }
 
 const submitMerchant = async () => {

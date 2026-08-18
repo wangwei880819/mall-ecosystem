@@ -1,7 +1,7 @@
 <template>
   <div class="page-container">
     <div class="page-header">
-      <h2>📋 商品审核</h2>
+      <h2>📋 一级选品审核</h2>
     </div>
 
     <div class="table-container">
@@ -154,6 +154,47 @@
           <el-button type="danger" @click="showRejectInput" :disabled="!selectedProduct">驳回</el-button>
         </div>
       </template>
+
+      <!-- 审核轨迹 -->
+      <div class="audit-trail">
+        <div class="trail-title">📋 审核轨迹</div>
+        <div class="trail-track">
+          <div class="trail-node-wrapper">
+            <div class="trail-node done">
+              <div class="trail-dot done"><span>✓</span></div>
+              <div class="trail-label">商品入驻</div>
+              <div class="trail-time">{{ selectedProduct?.createTime?.substring(0, 16) || '-' }}</div>
+            </div>
+            <div class="trail-line done"></div>
+          </div>
+          <div class="trail-node-wrapper">
+            <div class="trail-node" :class="selectedProduct?.reviewLevel >= 1 ? 'done' : 'active'">
+              <div class="trail-dot" :class="selectedProduct?.reviewLevel >= 1 ? 'done' : 'active'">
+                <span v-if="selectedProduct?.reviewLevel >= 1">✓</span>
+                <span v-else>●</span>
+              </div>
+              <div class="trail-label">一级审核</div>
+              <div class="trail-time">{{ selectedProduct?.level1AuditTime || '-' }}</div>
+            </div>
+            <div class="trail-line" :class="selectedProduct?.reviewLevel >= 1 ? 'done' : 'active'"></div>
+          </div>
+          <div class="trail-node-wrapper">
+            <div class="trail-node pending">
+              <div class="trail-dot pending"><span>○</span></div>
+              <div class="trail-label">二级审核</div>
+              <div class="trail-time">-</div>
+            </div>
+            <div class="trail-line"></div>
+          </div>
+          <div class="trail-node-wrapper">
+            <div class="trail-node pending">
+              <div class="trail-dot pending"><span>○</span></div>
+              <div class="trail-label">已上架</div>
+              <div class="trail-time">-</div>
+            </div>
+          </div>
+        </div>
+      </div>
     </el-dialog>
 
     <!-- 驳回原因对话框 -->
@@ -219,7 +260,7 @@ const getStatusType = (status) => {
 }
 
 const getStatusText = (status) => {
-  const map = { ON_SHELF: '在售', PENDING: '待上架', OFF_SHELF: '已下架', REJECTED: '已驳回' }
+  const map = { ON_SHELF: '在售', PENDING: '待一级审核', OFF_SHELF: '已下架', REJECTED: '已驳回' }
   return map[status] || status
 }
 
@@ -327,11 +368,12 @@ const approveProduct = async () => {
   submitLoading.value = true
   try {
     const res = await request.put(`/product/${selectedProduct.value.id}/audit`, {
-      auditStatus: 'ON_SHELF',
-      auditor: '审核员'
+      auditStatus: 'ONE_PASSED',
+      auditor: '审核员',
+      reviewLevel: 1
     })
     if (res.code === 200) {
-      ElMessage.success('审核通过，商品已上架')
+      ElMessage.success('审核通过，商品已进入待二级审核')
       showAuditDialog.value = false
       await fetchProducts()
     } else {
@@ -354,12 +396,13 @@ const confirmApproveWithReason = async () => {
   submitLoading.value = true
   try {
     const res = await request.put(`/product/${selectedProduct.value.id}/audit`, {
-      auditStatus: 'ON_SHELF',
+      auditStatus: 'ONE_PASSED',
       auditor: '审核员',
-      approveReason: approveReason.value
+      approveReason: approveReason.value,
+      reviewLevel: 1
     })
     if (res.code === 200) {
-      ElMessage.success('审核通过，商品已上架')
+      ElMessage.success('审核通过，商品已进入待二级审核')
       showApproveReasonDialog.value = false
       showAuditDialog.value = false
       approveReason.value = ''
@@ -391,7 +434,8 @@ const confirmReject = async () => {
     const res = await request.put(`/product/${selectedProduct.value.id}/audit`, {
       auditStatus: 'REJECTED',
       rejectReason: rejectReason.value,
-      auditor: '审核员'
+      auditor: '审核员',
+      reviewLevel: 1
     })
     if (res.code === 200) {
       ElMessage.success('商品已驳回')
@@ -438,6 +482,7 @@ onMounted(() => {
   border-radius: 8px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, .1);
   padding: 20px;
+  overflow-x: auto;
 }
 
 .no-image {
@@ -576,4 +621,21 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* 审核轨迹样式 */
+.audit-trail{margin-top:16px;padding:16px;background:#fafafa;border-radius:8px;border:1px solid #ebeef5}
+.trail-title{font-size:14px;font-weight:600;color:#333;margin-bottom:16px}
+.trail-track{display:flex;align-items:flex-start;justify-content:center;gap:0}
+.trail-node-wrapper{display:flex;align-items:flex-start;flex:1;min-width:0;max-width:140px}
+.trail-node{display:flex;flex-direction:column;align-items:center;text-align:center;flex-shrink:0}
+.trail-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;border:2px solid #dcdfe6;background:#fff;color:#c0c4cc}
+.trail-dot.done{border-color:#67c23a;background:#67c23a;color:#fff}
+.trail-dot.active{border-color:#409eff;background:#409eff;color:#fff;box-shadow:0 0 0 4px rgba(64,158,255,.2)}
+.trail-label{font-size:12px;color:#333;margin-top:8px;white-space:nowrap;font-weight:500}
+.trail-time{font-size:10px;color:#999;margin-top:4px;white-space:nowrap}
+.trail-node.pending .trail-label{color:#c0c4cc}
+.trail-node.pending .trail-time{color:#c0c4cc}
+.trail-line{flex:1;height:2px;margin-top:15px;background:#dcdfe6;min-width:12px}
+.trail-line.done{background:#67c23a}
+.trail-line.active{background:linear-gradient(to right,#67c23a,#dcdfe6)}
 </style>

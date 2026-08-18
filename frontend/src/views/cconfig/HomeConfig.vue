@@ -37,7 +37,7 @@
           <el-table-column prop="id" label="ID" width="60" />
           <el-table-column label="商品名称" width="200">
             <template #default="{ row }">
-              <el-link :href="`/mall/product/${row.id}`" target="_blank">{{ row.productName }}</el-link>
+              <el-link :href="`/admin/mall/product/${row.id}`" target="_blank">{{ row.productName }}</el-link>
             </template>
           </el-table-column>
           <el-table-column prop="price" label="价格" width="100" />

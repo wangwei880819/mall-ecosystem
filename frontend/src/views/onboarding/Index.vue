@@ -485,7 +485,7 @@ const benefitTypeMap = {
 
 onMounted(async () => {
   try {
-    const res = await fetch('http://localhost:8081/api/admin/merchants?page=0&size=20')
+    const res = await fetch('/api/admin/merchants?page=0&size=20')
     const data = await res.json()
     if (data.code === 200) {
       merchants.value = (data.data || []).map(m => ({
@@ -493,13 +493,13 @@ onMounted(async () => {
         progress: ((m.onboardingStep || 1) / 8) * 100
       }))
     }
-    const productRes = await fetch('http://localhost:8081/api/c-mall/products')
+    const productRes = await fetch('/api/c-mall/products')
     const productData = await productRes.json()
     if (productData.code === 200) {
       products.value = productData.data || []
     }
     // 加载权益列表
-    const benefitRes = await fetch('http://localhost:8081/api/benefit')
+    const benefitRes = await fetch('/api/benefit')
     const benefitData = await benefitRes.json()
     if (benefitData.code === 200) {
       benefits.value = benefitData.data || []
@@ -564,7 +564,7 @@ const approveProduct = (p) => {
 
 const submitMerchant = async () => {
   try {
-    const res = await fetch('http://localhost:8081/api/admin/merchants', {
+    const res = await fetch('/api/admin/merchants', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newMerchant.value)
@@ -591,7 +591,7 @@ const submitMerchant = async () => {
 
 const submitProduct = async () => {
   try {
-    const res = await fetch('http://localhost:8081/api/admin/products', {
+    const res = await fetch('/api/admin/products', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newProduct.value)
@@ -633,7 +633,7 @@ const viewBenefit = (b) => {
 
 const auditBenefit = async (b, action) => {
   try {
-    const res = await fetch(`http://localhost:8081/api/benefit/${b.id}/audit?action=${action}`, {
+    const res = await fetch(`/api/benefit/${b.id}/audit?action=${action}`, {
       method: 'PUT'
     })
     const data = await res.json()
@@ -649,7 +649,7 @@ const auditBenefit = async (b, action) => {
 const submitBenefit = async () => {
   if (!newBenefit.value.benefitName) { alert('请输入权益名称'); return }
   try {
-    const res = await fetch('http://localhost:8081/api/benefit', {
+    const res = await fetch('/api/benefit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...newBenefit.value, merchantId: 2 })
@@ -659,7 +659,7 @@ const submitBenefit = async () => {
       alert('权益引入提交成功！')
       showBenefitModal.value = false
       // 刷新列表
-      const benefitRes = await fetch('http://localhost:8081/api/benefit')
+      const benefitRes = await fetch('/api/benefit')
       const benefitData = await benefitRes.json()
       if (benefitData.code === 200) benefits.value = benefitData.data || []
     }
@@ -680,7 +680,7 @@ const doOcr = async () => {
   ocrError.value = ''
   ocrResult.value = null
   try {
-    const res = await fetch('http://localhost:8081/api/ai/ocr/quick', { method: 'POST' })
+    const res = await fetch('/api/ai/ocr/quick', { method: 'POST' })
     const data = await res.json()
     if (data.code === 200) {
       ocrResult.value = data.data

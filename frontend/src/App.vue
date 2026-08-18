@@ -51,11 +51,14 @@
     <main class="app-content">
       <router-view />
     </main>
+
+    <LogFloat />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import LogFloat from './components/LogFloat.vue'
 import { useRouter, useRoute } from 'vue-router'
 import request from './utils/request'
 
@@ -146,7 +149,8 @@ const loadFallbackMenus = () => {
       { id: 32, name: '业务复审', path: '/merchant/business-audit', icon: '📋', type: 'MENU', children: [] },
       { id: 33, name: '合规终审', path: '/merchant/compliance-audit', icon: '🔍', type: 'MENU', children: [] },
       { id: 34, name: '合同签署', path: '/merchant/contract-audit', icon: '📝', type: 'MENU', children: [] },
-      { id: 35, name: '支付进件', path: '/merchant/payment-audit', icon: '💳', type: 'MENU', children: [] }
+      { id: 35, name: '支付进件', path: '/merchant/payment-audit', icon: '💳', type: 'MENU', children: [] },
+      { id: 41, name: '合同管理', path: '/merchant/contract-manage', icon: '📑', type: 'MENU', children: [] }
     ]},
     { id: 3, name: '客户管理', path: '/customer', icon: '👥', type: 'DIRECTORY', children: [
       { id: 13, name: '客户列表', path: '/customer/list', icon: '📋', type: 'MENU', children: [] },
@@ -154,7 +158,8 @@ const loadFallbackMenus = () => {
     ]},
     { id: 4, name: '商品管理', path: '/product', icon: '📦', type: 'DIRECTORY', children: [
       { id: 16, name: '商品列表', path: '/product/list', icon: '📋', type: 'MENU', children: [] },
-      { id: 36, name: '商品审核', path: '/product/audit', icon: '✅', type: 'MENU', children: [] },
+      { id: 36, name: '一级选品审核', path: '/product/audit', icon: '✅', type: 'MENU', children: [] },
+      { id: 37, name: '二级选品审核', path: '/product/audit-2', icon: '✅', type: 'MENU', children: [] },
       { id: 17, name: '分类管理', path: '/product/category', icon: '📂', type: 'MENU', children: [] },
       { id: 18, name: '库存管理', path: '/product/stock', icon: '📦', type: 'MENU', children: [] },
       { id: 19, name: '权益引入', path: '/product/benefit', icon: '🎁', type: 'MENU', children: [] }
@@ -168,7 +173,9 @@ const loadFallbackMenus = () => {
     { id: 6, name: '财务管理', path: '/finance', icon: '💰', type: 'DIRECTORY', children: [
       { id: 22, name: '结算管理', path: '/finance/settlement', icon: '📊', type: 'MENU', children: [] },
       { id: 23, name: '发票管理', path: '/finance/invoice', icon: '📄', type: 'MENU', children: [] },
-      { id: 24, name: '对账管理', path: '/finance/reconciliation', icon: '🔍', type: 'MENU', children: [] }
+      { id: 24, name: '对账管理', path: '/finance/reconciliation', icon: '🔍', type: 'MENU', children: [] },
+      { id: 42, name: '保证金管理', path: '/finance/deposit', icon: '💰', type: 'MENU', children: [] },
+      { id: 43, name: '佣金配置', path: '/finance/commission', icon: '⚙️', type: 'MENU', children: [] }
     ]},
     { id: 7, name: '风险管理', path: '/risk', icon: '🛡️', type: 'DIRECTORY', children: [
       { id: 25, name: '规则管理', path: '/risk/rules', icon: '📋', type: 'MENU', children: [] },
@@ -180,6 +187,9 @@ const loadFallbackMenus = () => {
       { id: 29, name: '角色管理', path: '/system/roles', icon: '🎭', type: 'MENU', children: [] },
       { id: 30, name: '菜单管理', path: '/system/menus', icon: '📑', type: 'MENU', children: [] },
       { id: 31, name: '接入平台', path: '/system/platforms', icon: '🔗', type: 'MENU', children: [] }
+    ]},
+    { id: 11, name: '招商CRM', path: '/crm', icon: '🎯', type: 'DIRECTORY', children: [
+      { id: 44, name: '线索管理', path: '/crm/leads', icon: '🎯', type: 'MENU', children: [] }
     ]},
     { id: 10, name: 'AI+应用', path: '/ai', icon: '🤖', type: 'DIRECTORY', children: [
       { id: 40, name: '模型配置', path: '/ai/config', icon: '⚙️', type: 'MENU', children: [] }
@@ -193,8 +203,24 @@ const loadFallbackMenus = () => {
   })
 }
 
+const mallUrl = ref('/admin/mall')
+
+const fetchMallUrl = async () => {
+  try {
+    const res = await request.get('/auth/sso/platforms')
+    if (res.code === 200 && res.data) {
+      const mall = res.data.find(p => p.systemCode === 'C_MALL' || p.name?.includes('C端商城'))
+      if (mall?.url) {
+        mallUrl.value = mall.url
+      }
+    }
+  } catch (e) {
+    // 使用默认值
+  }
+}
+
 const openCMall = () => {
-  window.open('http://localhost:3000', '_blank')
+  window.open(mallUrl.value, '_blank')
 }
 
 const handleLogout = () => {
@@ -207,6 +233,7 @@ const handleLogout = () => {
 
 onMounted(() => {
   loadMenus()
+  fetchMallUrl()
 })
 </script>
 
@@ -217,18 +244,21 @@ onMounted(() => {
 }
 
 .mall-entry {
-  color: #ffd700;
-  text-decoration: none;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  color: #fff;
+  padding: 5px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 13px;
   margin-right: 16px;
-  font-weight: 500;
-  padding: 4px 12px;
-  border-radius: 12px;
-  background: rgba(255, 215, 0, 0.15);
-  transition: all 0.3s;
+  transition: all 0.2s;
+  font-weight: 400;
 }
 
 .mall-entry:hover {
-  background: rgba(255, 215, 0, 0.3);
+  border-color: #fff;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .logout-btn {

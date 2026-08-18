@@ -18,7 +18,7 @@
     </div>
 
     <el-dialog v-model="showDetail" title="商户详情" width="850px">
-      <el-tabs v-if="selected">
+      <el-tabs v-if="selected" v-model="detailTab">
         <el-tab-pane label="基本信息">
           <el-descriptions :column="2" border>
             <el-descriptions-item label="商户编号" :span="2">{{selected.merchantCode||'-'}}</el-descriptions-item>
@@ -41,13 +41,32 @@
             <el-descriptions-item label="授权链路">{{selected.authChain||'-'}}</el-descriptions-item>
             <el-descriptions-item label="品类匹配" :span="2">{{selected.categoryMatch||'-'}}</el-descriptions-item>
           </el-descriptions>
+          <!-- 审核轨迹（横向节点布局） -->
+          <div class="audit-trail">
+            <div class="trail-title">📋 审核轨迹</div>
+            <div class="trail-track">
+              <div v-for="(node, idx) in auditTrailNodes" :key="node.key" class="trail-node-wrapper">
+                <div class="trail-node" :class="node.status">
+                  <div class="trail-dot" :class="node.status">
+                    <span v-if="node.status==='done'">✓</span>
+                    <span v-else-if="node.status==='active'">●</span>
+                    <span v-else>○</span>
+                  </div>
+                  <div class="trail-label">{{ node.label }}</div>
+                  <div class="trail-time">{{ node.time || '-' }}</div>
+                  <div v-if="node.reason" class="trail-reason" :title="node.reason">{{ node.reason }}</div>
+                </div>
+                <div v-if="idx < auditTrailNodes.length - 1" class="trail-line" :class="node.status"></div>
+              </div>
+            </div>
+          </div>
         </el-tab-pane>
         <el-tab-pane label="审核记录" name="auditLog">
           <div v-loading="logLoading">
             <el-timeline v-if="auditLogs.length>0">
-              <el-timeline-item v-for="log in auditLogs" :key="log.id" :timestamp="formatTime(log.createTime)" :color="log.action==='APPROVED'?'#67c23a':'#f56c6c'" placement="top">
+              <el-timeline-item v-for="log in auditLogs" :key="log.id" :timestamp="formatTime(log.createTime)" :color="log.action==='APPROVED'?'#67c23a':log.action==='RESUBMIT'?'#409eff':'#f56c6c'" placement="top">
                 <el-card shadow="hover">
-                  <p><strong>{{getAuditNodeText(log.auditNode)}}</strong> - <el-tag :type="log.action==='APPROVED'?'success':'danger'" size="small">{{log.action==='APPROVED'?'通过':'驳回'}}</el-tag></p>
+                  <p><strong>{{log.action==='RESUBMIT'?'重新提交':getAuditNodeText(log.auditNode)}}</strong> - <el-tag :type="log.action==='APPROVED'?'success':log.action==='RESUBMIT'?'primary':'danger'" size="small">{{log.action==='APPROVED'?'通过':log.action==='RESUBMIT'?'重新提交':'驳回'}}</el-tag></p>
                   <p v-if="log.comment">说明：{{log.comment}}</p>
                   <p v-if="log.rejectReason">驳回原因：{{log.rejectReason}}</p>
                   <p>操作人：{{log.operator||'-'}}</p>
@@ -76,13 +95,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import request from '../../utils/request'
 
 const loading=ref(false),submitting=ref(false),showDetail=ref(false),showApprove=ref(false),showReject=ref(false)
 const merchants=ref([]),selected=ref(null),approving=ref(null),rejecting=ref(null)
 const approveForm=ref({comment:''}),rejectForm=ref({reason:''}),auditLogs=ref([]),logLoading=ref(false)
+const detailTab=ref('basic')
+
+const auditNodes=[{key:'SUBMIT',label:'商品入驻提交',order:0},{key:'QUALIFICATION',label:'资质初审',order:1},{key:'BUSINESS',label:'业务复审',order:2},{key:'COMPLIANCE',label:'合规终审',order:3},{key:'CONTRACT',label:'合同签署',order:4},{key:'PAYMENT',label:'支付进件',order:5},{key:'COMPLETED',label:'已完成',order:6}]
+const auditTrailNodes=computed(()=>{if(!selected.value)return auditNodes.map(n=>({...n,status:'pending',time:'',reason:''}));const m=selected.value;const cn=m.auditNode||'PAYMENT';const lt={};(auditLogs.value||[]).forEach(l=>{if(l.auditNode)lt[l.auditNode]=formatTime(l.createTime)});const ci=auditNodes.findIndex(n=>n.key===cn);return auditNodes.map((n,i)=>{let s='pending',t='';if(n.key==='SUBMIT'){s='done';t=m.createTime?formatTime(m.createTime):''}else if(n.key==='COMPLETED'){if(m.onboardingStatus==='APPROVED')s='done';t=lt[n.key]||''}else{if(i<ci){s='done';t=lt[n.key]||''}else if(i===ci){s='active';t=''}}return{...n,status:s,time:t,reason:''}})})
 
 const fetch=async()=>{loading.value=true;try{const r=await request.get('/merchant/node/PAYMENT');if(r.code===200)merchants.value=r.data||[]}finally{loading.value=false}}
 
@@ -90,7 +113,7 @@ const getTypeText=t=>({DIGITAL:'数字权益',PHYSICAL:'实物商品',LOCAL_LIFE
 const getTypeTagType=t=>({DIGITAL:'primary',PHYSICAL:'success',LOCAL_LIFE:'warning'}[t]||'info')
 const isOverdue=d=>d?new Date(d)<new Date():false
 
-const viewDetail=r=>{selected.value=r;fetchAuditLogs(r.id);showDetail.value=true}
+const viewDetail=r=>{selected.value=r;detailTab.value='basic';fetchAuditLogs(r.id);showDetail.value=true}
 const approveAudit=r=>{approving.value=r;approveForm.value.comment='';showApprove.value=true}
 const confirmApprove=async()=>{
   submitting.value=true
@@ -118,14 +141,36 @@ const fetchAuditLogs = async (merchantId) => {
 
 const formatTime = (t) => t ? t.substring(0, 16) : '-'
 
-const getAuditNodeText = n => {
-  const m = { QUALIFICATION:'资质初审', BUSINESS:'业务复审', COMPLIANCE:'合规终审', CONTRACT:'合同签署', PAYMENT:'支付进件', PRODUCT:'商品录入', COMPLETED:'已完成' }
-  return m[n] || n || '-'
-}
+const getAuditNodeText = n => { const m = { SUBMIT:'商品入驻提交', QUALIFICATION:'资质初审', BUSINESS:'业务复审', COMPLIANCE:'合规终审', CONTRACT:'合同签署', PAYMENT:'支付进件', COMPLETED:'已完成' }; return m[n] || n || '-' }
 
 onMounted(()=>{fetch()})
 </script>
 
 <style scoped>
 .container{padding:20px}.page-title{margin-bottom:24px;color:#333;font-size:24px;font-weight:600}.card{background:#fff;border-radius:8px;box-shadow:0 2px 12px 0 rgba(0,0,0,.1);padding:20px;margin-bottom:20px}.card-header{display:flex;justify-content:space-between;align-items:center;padding-bottom:16px;border-bottom:1px solid #f0f0f0;margin-bottom:16px}.card-header h3{margin:0;color:#333;font-size:16px}
+
+/* 审核轨迹样式 */
+.audit-trail{margin-top:20px;padding:16px;background:#fafafa;border-radius:8px;border:1px solid #ebeef5}
+.trail-title{font-size:14px;font-weight:600;color:#333;margin-bottom:16px}
+.trail-track{display:flex;align-items:flex-start;justify-content:space-between;position:relative}
+.trail-node-wrapper{flex:1;display:flex;align-items:flex-start;position:relative}
+.trail-node{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1}
+.trail-dot{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;border:2px solid #ddd;background:#fff;color:#999}
+.trail-dot.done{background:#67c23a;border-color:#67c23a;color:#fff}
+.trail-dot.active{background:#409eff;border-color:#409eff;color:#fff;animation:pulse 1.5s infinite}
+.trail-dot.pending{background:#f5f5f5;border-color:#ddd;color:#ccc}
+.trail-label{font-size:12px;color:#333;font-weight:500;text-align:center;white-space:nowrap}
+.trail-time{font-size:10px;color:#999;text-align:center}
+.trail-line{flex:1;height:3px;background:#e0e0e0;margin-top:16px;min-width:20px}
+.trail-line.done{background:#67c23a}
+.trail-line.active{background:linear-gradient(90deg,#409eff,#e0e0e0)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(64,158,255,.4)}50%{box-shadow:0 0 0 6px rgba(64,158,255,0)}}
+.trail-dot.rejected{border-color:#f56c6c;background:#f56c6c;color:#fff}
+.trail-reason{font-size:10px;color:#f56c6c;margin-top:2px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.trail-node.rejected .trail-label{color:#f56c6c}
+.trail-line.rejected{background:#f56c6c}
+/* 重新提交节点样式 */
+.trail-node.resubmit .trail-dot{border-color:#409eff;background:#409eff;color:#fff}
+.trail-node.resubmit .trail-label{color:#409eff}
+.trail-line.resubmit{background:#409eff}
 </style>

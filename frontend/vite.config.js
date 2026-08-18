@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   base: '/admin',
+  appType: 'spa',
   plugins: [vue()],
   server: {
     port: 5173,

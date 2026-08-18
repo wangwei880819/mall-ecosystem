@@ -315,12 +315,12 @@ const newRule = ref({
 
 onMounted(async () => {
   try {
-    const rulesRes = await fetch('http://localhost:8081/api/admin/audit/rules')
+    const rulesRes = await fetch('/api/admin/audit/rules')
     const rulesData = await rulesRes.json()
     if (rulesData.code === 200) {
       rules.value = rulesData.data
     }
-    const recordsRes = await fetch('http://localhost:8081/api/admin/audit/records')
+    const recordsRes = await fetch('/api/admin/audit/records')
     const recordsData = await recordsRes.json()
     if (recordsData.code === 200) {
       orderAudit.value = recordsData.data.filter(r => r.auditType === 'ORDER')

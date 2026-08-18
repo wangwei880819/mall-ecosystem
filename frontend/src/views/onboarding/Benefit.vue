@@ -133,7 +133,7 @@
 
         <el-form-item label="权益图片">
           <el-upload
-            action="http://localhost:8081/api/product/upload"
+            action="/api/product/upload"
             list-type="picture-card"
             :file-list="imageList"
             :on-success="handleImageUpload"

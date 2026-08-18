@@ -1,0 +1,1 @@
+function c(e,o=2e3){const t=document.createElement("div");t.className="toast",t.textContent=e,document.body.appendChild(t),setTimeout(()=>{t.remove()},o)}const a=(e,o)=>{const t=e.__vccOpts||e;for(const[n,s]of o)t[n]=s;return t};export{a as _,c as t};

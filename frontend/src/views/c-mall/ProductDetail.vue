@@ -145,7 +145,7 @@ const addToCart = () => {
 const buyNow = () => {
   addToCart()
   setTimeout(() => {
-    window.location.href = '/mall/cart'
+    window.location.href = '/admin/mall/cart'
   }, 500)
 }
 </script>

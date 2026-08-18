@@ -37,6 +37,11 @@ public class Product {
     private String auditor;
     private String rejectReason;
     private String approveReason;
+    private Integer reviewLevel;    // 审核级别：1-一级选品审核 2-二级选品审核 null-未审核
+    private LocalDateTime level1AuditTime;  // 一级审核时间
+    private String level1Auditor;           // 一级审核人
+    private LocalDateTime level2AuditTime;  // 二级审核时间
+    private String level2Auditor;           // 二级审核人
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -106,6 +111,16 @@ public class Product {
     public void setRejectReason(String rejectReason) { this.rejectReason = rejectReason; }
     public String getApproveReason() { return approveReason; }
     public void setApproveReason(String approveReason) { this.approveReason = approveReason; }
+    public Integer getReviewLevel() { return reviewLevel; }
+    public void setReviewLevel(Integer reviewLevel) { this.reviewLevel = reviewLevel; }
+    public LocalDateTime getLevel1AuditTime() { return level1AuditTime; }
+    public void setLevel1AuditTime(LocalDateTime level1AuditTime) { this.level1AuditTime = level1AuditTime; }
+    public String getLevel1Auditor() { return level1Auditor; }
+    public void setLevel1Auditor(String level1Auditor) { this.level1Auditor = level1Auditor; }
+    public LocalDateTime getLevel2AuditTime() { return level2AuditTime; }
+    public void setLevel2AuditTime(LocalDateTime level2AuditTime) { this.level2AuditTime = level2AuditTime; }
+    public String getLevel2Auditor() { return level2Auditor; }
+    public void setLevel2Auditor(String level2Auditor) { this.level2Auditor = level2Auditor; }
     public LocalDateTime getCreateTime() { return createTime; }
     public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
     public LocalDateTime getUpdateTime() { return updateTime; }

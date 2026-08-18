@@ -94,9 +94,22 @@ public class MerchantController {
         if (merchant.getBankAccount() != null) existing.setBankAccount(merchant.getBankAccount());
         if (merchant.getTaxNumber() != null) existing.setTaxNumber(merchant.getTaxNumber());
         if (merchant.getOnboardingStep() != null) existing.setOnboardingStep(merchant.getOnboardingStep());
+        // 先保存旧状态，再设置新状态
+        String oldStatus = existing.getOnboardingStatus();
         if (merchant.getOnboardingStatus() != null) existing.setOnboardingStatus(merchant.getOnboardingStatus());
         if (merchant.getRejectReason() != null) existing.setRejectReason(merchant.getRejectReason());
         merchantMapper.update(existing);
+        // 检测重新提交：从驳回状态变更为非驳回状态时，记录RESUBMIT日志
+        if ("REJECTED".equals(oldStatus) && existing.getOnboardingStatus() != null
+                && !"REJECTED".equals(existing.getOnboardingStatus())) {
+            MerchantAuditLog resubmitLog = new MerchantAuditLog();
+            resubmitLog.setMerchantId(id);
+            resubmitLog.setAuditNode("RESUBMIT");
+            resubmitLog.setAction("RESUBMIT");
+            resubmitLog.setOperator(merchant.getContactName() != null ? merchant.getContactName() : "商户");
+            resubmitLog.setComment("商户重新提交申请");
+            auditLogMapper.insert(resubmitLog);
+        }
         return Result.success(existing);
     }
 
@@ -122,6 +135,9 @@ public class MerchantController {
         String rejectReason = (String) params.get("rejectReason");
         String auditNode = (String) params.get("auditNode");
         String onboardingStatus = (String) params.get("onboardingStatus");
+
+        // 保存原始审核节点，用于日志记录（在修改 merchant 之前）
+        String originalNode = merchant.getAuditNode();
 
         if ("APPROVED".equals(auditStatus)) {
             // 多节点审核：按节点推进
@@ -164,10 +180,10 @@ public class MerchantController {
             merchant.setAuditNodeDeadline(null);
         }
 
-        // 保存审核日志
+        // 保存审核日志（使用原始节点名，确保日志记录的是本次审核的节点）
         MerchantAuditLog log = new MerchantAuditLog();
         log.setMerchantId(id);
-        log.setAuditNode(auditNode != null ? auditNode : (merchant.getAuditNode() != null ? merchant.getAuditNode() : "QUALIFICATION"));
+        log.setAuditNode(auditNode != null ? auditNode : (originalNode != null ? originalNode : "QUALIFICATION"));
         log.setAction(auditStatus);
         log.setOperator((String) params.getOrDefault("operator", "系统管理员"));
         log.setComment((String) params.getOrDefault("comment", ""));

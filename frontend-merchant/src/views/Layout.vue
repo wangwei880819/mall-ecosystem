@@ -11,7 +11,8 @@ const merchantStore = useMerchantStore()
 const menuItems = [
   { path: '/dashboard', title: '仪表盘', icon: 'DataAnalysis' },
   { path: '/products', title: '我的商品', icon: 'Goods' },
-  { path: '/orders', title: '我的订单', icon: 'Document' }
+  { path: '/orders', title: '我的订单', icon: 'Document' },
+  { path: '/settlement', title: '结算管理', icon: 'Money' }
 ]
 
 const currentPath = computed(() => route.path)

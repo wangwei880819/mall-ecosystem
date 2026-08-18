@@ -270,6 +270,7 @@ CREATE TABLE IF NOT EXISTS benefit (
     refund_policy VARCHAR(32) COMMENT '退款政策: NO_REFUND/CONDITIONAL/FULL_REFUND',
     image_url VARCHAR(512) COMMENT '封面图片',
     detail_desc MEDIUMTEXT COMMENT '详细说明(富文本)',
+    benefit_description VARCHAR(2000) COMMENT '权益描述',
     ai_tag VARCHAR(64) COMMENT 'AI卖点标签',
     ai_selling_point VARCHAR(2000) COMMENT 'AI卖点描述',
     status VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/ON_SHELF/OFF_SHELF/REJECTED',
@@ -354,11 +355,201 @@ CREATE TABLE IF NOT EXISTS sso_platform (
     create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ========== 18. 保证金表 ==========
+CREATE TABLE IF NOT EXISTS deposit (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    deposit_code VARCHAR(32) NOT NULL COMMENT '保证金编号',
+    merchant_id BIGINT NOT NULL COMMENT '商户ID',
+    deposit_type VARCHAR(32) NOT NULL COMMENT '类型: PAY(缴纳)/REFUND(退还)/DEDUCT(扣除)',
+    amount DECIMAL(12,2) NOT NULL COMMENT '金额',
+    balance DECIMAL(12,2) NOT NULL COMMENT '余额',
+    pay_method VARCHAR(32) COMMENT '支付方式',
+    pay_no VARCHAR(64) COMMENT '支付流水号',
+    status VARCHAR(32) NOT NULL DEFAULT 'PENDING' COMMENT '状态: PENDING/COMPLETED/REJECTED',
+    reason VARCHAR(500) COMMENT '原因说明',
+    approver VARCHAR(64) COMMENT '审批人',
+    approve_time DATETIME COMMENT '审批时间',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_deposit_code (deposit_code),
+    INDEX idx_merchant_id (merchant_id)
+);
+
+-- ========== 19. 合同模板表 ==========
+CREATE TABLE IF NOT EXISTS contract_template (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    template_code VARCHAR(32) NOT NULL COMMENT '模板编号',
+    template_name VARCHAR(128) NOT NULL COMMENT '模板名称',
+    template_type VARCHAR(32) NOT NULL COMMENT '类型: SETTLEMENT(入驻合同)/COOPERATION(合作协议)/SUPPLEMENT(补充协议)',
+    content MEDIUMTEXT COMMENT '合同内容(富文本)',
+    variables VARCHAR(2000) COMMENT '变量定义JSON',
+    status VARCHAR(16) NOT NULL DEFAULT 'ACTIVE',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_template_code (template_code)
+);
+
+-- ========== 20. 合同表 ==========
+CREATE TABLE IF NOT EXISTS contract (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    contract_code VARCHAR(32) NOT NULL COMMENT '合同编号',
+    merchant_id BIGINT NOT NULL COMMENT '商户ID',
+    template_id BIGINT COMMENT '模板ID',
+    contract_type VARCHAR(32) NOT NULL COMMENT '类型',
+    contract_title VARCHAR(256) COMMENT '合同标题',
+    contract_content MEDIUMTEXT COMMENT '合同内容',
+    file_url VARCHAR(512) COMMENT '合同文件URL',
+    sign_url VARCHAR(512) COMMENT '电子签章URL',
+    commission_rate DECIMAL(5,4) COMMENT '佣金费率',
+    deposit_amount DECIMAL(12,2) COMMENT '保证金金额',
+    platform_signed INT DEFAULT 0 COMMENT '平台签署状态',
+    platform_sign_time DATETIME COMMENT '平台签署时间',
+    platform_signer VARCHAR(64) COMMENT '平台签署人',
+    merchant_signed INT DEFAULT 0 COMMENT '商户签署状态',
+    merchant_sign_time DATETIME COMMENT '商户签署时间',
+    status VARCHAR(32) NOT NULL DEFAULT 'DRAFT' COMMENT '状态: DRAFT/PENDING_SIGN/SIGNED/TERMINATED/EXPIRED',
+    effective_date DATE COMMENT '生效日期',
+    expire_date DATE COMMENT '到期日期',
+    remark VARCHAR(500) COMMENT '备注',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_contract_code (contract_code),
+    INDEX idx_merchant_id (merchant_id)
+);
+
+-- ========== 21. 佣金费率配置表 ==========
+CREATE TABLE IF NOT EXISTS commission_config (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    merchant_id BIGINT NOT NULL COMMENT '商户ID',
+    category_id BIGINT COMMENT '品类ID，NULL表示全品类',
+    rate_type VARCHAR(32) NOT NULL DEFAULT 'FIXED' COMMENT '类型: FIXED(固定)/LADDER(阶梯)/CATEGORY(品类差异化)',
+    commission_rate DECIMAL(5,4) NOT NULL COMMENT '佣金费率',
+    ladder_config VARCHAR(2000) COMMENT '阶梯配置JSON',
+    effective_date DATE COMMENT '生效日期',
+    expire_date DATE COMMENT '到期日期',
+    status VARCHAR(16) DEFAULT 'ACTIVE',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_merchant_id (merchant_id)
+);
+
+-- ========== 22. 招商线索表 ==========
+CREATE TABLE IF NOT EXISTS crm_lead (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    lead_code VARCHAR(32) NOT NULL COMMENT '线索编号',
+    company_name VARCHAR(128) NOT NULL COMMENT '企业名称',
+    brand_name VARCHAR(128) COMMENT '品牌名称',
+    industry VARCHAR(64) COMMENT '行业',
+    contact_name VARCHAR(64) COMMENT '联系人',
+    contact_phone VARCHAR(20) COMMENT '联系电话',
+    contact_email VARCHAR(128) COMMENT '联系邮箱',
+    source VARCHAR(32) COMMENT '来源: ACTIVE_MINING/REFERRAL/EXHIBITION/ONLINE/OTHER',
+    status VARCHAR(32) NOT NULL DEFAULT 'NEW' COMMENT '状态: NEW/CONTACTING/NEGOTIATING/INTENT_CONFIRMED/CONVERTED/LOST',
+    intention_level VARCHAR(16) COMMENT '意向等级: HIGH/MEDIUM/LOW',
+    estimated_gmv DECIMAL(12,2) COMMENT '预估GMV',
+    assigned_to VARCHAR(64) COMMENT '负责人',
+    lost_reason VARCHAR(500) COMMENT '丢失原因',
+    remark VARCHAR(2000) COMMENT '备注',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_lead_code (lead_code),
+    INDEX idx_status (status)
+);
+
+-- ========== 23. 招商跟进记录表 ==========
+CREATE TABLE IF NOT EXISTS crm_follow_up (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    lead_id BIGINT NOT NULL COMMENT '线索ID',
+    follow_type VARCHAR(32) NOT NULL COMMENT '类型: PHONE/MEETING/EMAIL/WECHAT/VISIT',
+    content VARCHAR(2000) NOT NULL COMMENT '跟进内容',
+    next_plan VARCHAR(2000) COMMENT '下一步计划',
+    next_follow_time DATETIME COMMENT '下次跟进时间',
+    follow_by VARCHAR(64) COMMENT '跟进人',
+    create_time DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_lead_id (lead_id)
+);
+ 
+-- ========== 风控稽核相关表 ==========
+CREATE TABLE IF NOT EXISTS blacklist_item (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    value VARCHAR(256) NOT NULL COMMENT '黑名单值',
+    type VARCHAR(32) NOT NULL COMMENT '黑名单类型',
+    list_type VARCHAR(32) NOT NULL COMMENT '列表类型',
+    reason VARCHAR(500) COMMENT '原因',
+    source VARCHAR(64) COMMENT '来源',
+    operator VARCHAR(64) COMMENT '操作人',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    expire_time DATETIME COMMENT '过期时间'
+);
+ 
+CREATE TABLE IF NOT EXISTS risk_event (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    event_type VARCHAR(32) NOT NULL COMMENT '事件类型',
+    target VARCHAR(128) COMMENT '目标',
+    risk_level VARCHAR(16) COMMENT '风险等级',
+    score INT DEFAULT 0 COMMENT '风险评分',
+    hit_rule VARCHAR(128) COMMENT '命中规则',
+    status VARCHAR(32) DEFAULT 'PENDING' COMMENT '处理状态',
+    source VARCHAR(64) COMMENT '来源',
+    detail TEXT COMMENT '详情',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS risk_check_rule (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(128) NOT NULL COMMENT '规则名称',
+    type VARCHAR(32) NOT NULL COMMENT '规则类型',
+    scene VARCHAR(64) COMMENT '应用场景',
+    priority INT DEFAULT 5 COMMENT '优先级',
+    rule_condition VARCHAR(2000) COMMENT '规则条件',
+    action VARCHAR(32) DEFAULT 'MANUAL' COMMENT '处置动作',
+    hit_count INT DEFAULT 0 COMMENT '命中次数',
+    active INT DEFAULT 1 COMMENT '是否启用',
+    description VARCHAR(500) COMMENT '描述',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS disposal_config (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(128) NOT NULL COMMENT '方案名称',
+    type VARCHAR(32) NOT NULL COMMENT '处置类型',
+    trigger_rule VARCHAR(128) COMMENT '触发规则',
+    risk_level VARCHAR(16) COMMENT '风险等级',
+    duration VARCHAR(64) COMMENT '持续时间',
+    status VARCHAR(16) DEFAULT 'ACTIVE' COMMENT '状态',
+    exec_count INT DEFAULT 0 COMMENT '执行次数',
+    description VARCHAR(500) COMMENT '描述',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS risk_alert (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    alert_code VARCHAR(32) COMMENT '告警编号',
+    rule_id BIGINT COMMENT '规则ID',
+    rule_code VARCHAR(64) COMMENT '规则编码',
+    rule_name VARCHAR(128) COMMENT '规则名称',
+    target_type VARCHAR(32) COMMENT '目标类型',
+    target_id BIGINT COMMENT '目标ID',
+    target_code VARCHAR(64) COMMENT '目标编码',
+    risk_level VARCHAR(16) COMMENT '风险等级',
+    alert_action VARCHAR(32) COMMENT '告警动作',
+    status VARCHAR(16) DEFAULT 'PENDING' COMMENT '处理状态',
+    alert_time DATETIME COMMENT '告警时间',
+    handler VARCHAR(64) COMMENT '处理人',
+    handle_time DATETIME COMMENT '处理时间',
+    handle_result VARCHAR(256) COMMENT '处理结果',
+    remark VARCHAR(500) COMMENT '备注',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP,
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+ 
 -- ========== 种子数据 ==========
 INSERT INTO sys_user (username, password, real_name, phone, role, platforms, status) VALUES
 ('admin', '$2a$10$CC.jqflKo7lPLxy8.OsQbOLLnB3zFitqRzm1ElqtziX6WM69u7ILK', '系统管理员', '13800138000', 'SUPER_ADMIN', '1,2,3,4,5,6,7', 'ACTIVE'),
-('operator01', 'demo123', '运营专员', '13800138001', 'OPERATOR', '1,2,3', 'ACTIVE'),
-('auditor01', 'demo123', '稽核专员', '13800138002', 'AUDITOR', '1,3,5', 'ACTIVE');
+('operator01', '$2a$10$CmtZ.4HAkEJ.DoNZasHS9e5LEXDdiabOUjEXDoIzeqtuTVGKF3Rfe', '运营专员', '13800138001', 'OPERATOR', '1,2,3', 'ACTIVE'),
+('auditor01', '$2a$10$CmtZ.4HAkEJ.DoNZasHS9e5LEXDdiabOUjEXDoIzeqtuTVGKF3Rfe', '稽核专员', '13800138002', 'AUDITOR', '1,3,5', 'ACTIVE');
 
 INSERT INTO merchant (merchant_code, merchant_name, merchant_type, credit_code, legal_person, contact_name, contact_phone, onboarding_step, onboarding_status, risk_level, commission_rate) VALUES
 ('M20240823001', '瑞幸咖啡（中国）有限公司', 'DIGITAL', '91110108MA01ABC23X', '郭谨一', '张经理', '13900001111', 3, 'REVIEWING', 'LOW', 0.0500),
@@ -393,6 +584,7 @@ INSERT INTO sso_platform (id, name, system_code, auth_type, icon, url, status) V
 (2, '积分商城后台', 'POINTS_MALL', 'JWT', '🎁', NULL, 'ACTIVE'),
 (3, '权益超市后台', 'BENEFIT_MART', 'JWT', '🎬', NULL, 'ACTIVE'),
 (4, '泛全联盟平台', 'ALLIANCE', 'OAUTH', '🌐', NULL, 'ACTIVE'),
-(5, '风控稽核管理平台', 'RISK_AUDIT', 'JWT', '🛡️', 'http://localhost:3001', 'ACTIVE'),
+(5, '风控稽核管理平台', 'RISK_AUDIT', 'JWT', '🛡️', '/risk', 'ACTIVE'),
 (6, '工单管理系统', 'WORK_ORDER', 'JWT', '🎫', NULL, 'ACTIVE'),
-(7, '评价管理系统', 'EVALUATION', 'JWT', '⭐', NULL, 'ACTIVE');
+(7, '评价管理系统', 'EVALUATION', 'JWT', '⭐', NULL, 'ACTIVE'),
+(8, 'C端商城', 'C_MALL', 'JWT', '🛒', '/mall', 'ACTIVE');

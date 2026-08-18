@@ -5,7 +5,7 @@ import { useMerchantStore } from '@/stores/merchant'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const merchantStore = useMerchantStore()
-const merchantId = computed(() => merchantStore.merchantInfo?.merchant?.id || '')
+const merchantId = computed(() => merchantStore.merchantInfo?.id || merchantStore.merchantInfo?.merchant?.id || '')
 const orders = ref([])
 const loading = ref(false)
 const statusFilter = ref('')

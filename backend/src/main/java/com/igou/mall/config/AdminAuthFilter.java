@@ -23,9 +23,12 @@ public class AdminAuthFilter extends OncePerRequestFilter {
 
     private static final Set<String> PUBLIC_PATHS = new HashSet<>(Arrays.asList(
             "/api/auth/login",
+            "/api/merchant-portal/",
             "/api/c-mall/",
             "/api/customer/auth/",
             "/api/product/upload",
+            "/api/product/categories",
+            "/api/ai/",
             "/api/ocr/"
     ));
 

@@ -1,9 +1,11 @@
 package com.igou.mall.controller;
 
 import com.igou.mall.common.Result;
+import com.igou.mall.dao.EvaluationMapper;
 import com.igou.mall.dao.MallOrderMapper;
 import com.igou.mall.dao.ProductMapper;
 import com.igou.mall.dao.RefundApplyMapper;
+import com.igou.mall.model.entity.Evaluation;
 import com.igou.mall.model.entity.MallOrder;
 import com.igou.mall.model.entity.Product;
 import com.igou.mall.model.entity.RefundApply;
@@ -30,10 +32,18 @@ public class OrderController {
     @Autowired
     private RefundApplyMapper refundApplyMapper;
 
+    @Autowired
+    private EvaluationMapper evaluationMapper;
+
     @GetMapping
-    public Result<List<MallOrder>> list(@RequestParam(defaultValue = "0") int page,
+    public Result<Map<String, Object>> list(@RequestParam(defaultValue = "0") int page,
                                          @RequestParam(defaultValue = "20") int size) {
-        return Result.success(orderMapper.findAll(page * size, size));
+        List<MallOrder> list = orderMapper.findAll(page * size, size);
+        int total = orderMapper.count();
+        Map<String, Object> result = new HashMap<>();
+        result.put("list", list);
+        result.put("total", total);
+        return Result.success(result);
     }
 
     @GetMapping("/{id}")
@@ -237,5 +247,11 @@ public class OrderController {
         stats.put("refunded", orderMapper.countByStatus("REFUNDED"));
         stats.put("cancelled", orderMapper.countByStatus("CANCELLED"));
         return Result.success(stats);
+    }
+
+    @GetMapping("/{id}/evaluation")
+    public Result<Evaluation> getEvaluation(@PathVariable Long id) {
+        Evaluation evaluation = evaluationMapper.findByOrderId(id);
+        return Result.success(evaluation);
     }
 }

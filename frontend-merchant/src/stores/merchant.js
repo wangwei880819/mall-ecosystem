@@ -11,9 +11,10 @@ export const useMerchantStore = defineStore('merchant', () => {
 
   function setLogin(data) {
     token.value = data.token
-    merchantInfo.value = data.merchantInfo || data
+    const info = data.merchant || data.merchantInfo || data
+    merchantInfo.value = info
     localStorage.setItem('merchant_token', data.token)
-    localStorage.setItem('merchant_info', JSON.stringify(data.merchantInfo || data))
+    localStorage.setItem('merchant_info', JSON.stringify(info))
   }
 
   function logout() {

@@ -29,4 +29,7 @@ public interface EvaluationMapper {
 
     @Select("SELECT COUNT(*) FROM evaluation WHERE sentiment = 'NEGATIVE'")
     int negativeCount();
+
+    @Select("SELECT * FROM evaluation WHERE order_id = #{orderId} ORDER BY create_time DESC LIMIT 1")
+    Evaluation findByOrderId(@Param("orderId") Long orderId);
 }

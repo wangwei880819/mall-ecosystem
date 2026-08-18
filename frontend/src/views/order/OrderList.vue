@@ -63,13 +63,13 @@
         </template>
       </el-table-column>
       <el-table-column prop="createTime" label="下单时间" width="180" />
-      <el-table-column label="操作" fixed="right" width="200">
+      <el-table-column label="操作" fixed="right" width="220">
         <template #default="{ row }">
           <el-button size="small" @click="viewOrder(row)">查看</el-button>
-          <el-button v-if="row.status === 'CREATED'" size="small" type="primary" @click="handlePay(row)">支付</el-button>
           <el-button v-if="row.status === 'PAID'" size="small" type="success" @click="handleFulfill(row)">发货</el-button>
           <el-button v-if="row.status === 'CREATED'" size="small" type="warning" @click="handleCancel(row)">取消</el-button>
           <el-button v-if="row.status === 'PAID' || row.status === 'FULFILLED'" size="small" type="danger" @click="handleRefund(row)">退款</el-button>
+          <el-button v-if="row.status === 'EVALUATED' || row.status === 'COMPLETED'" size="small" type="info" @click="viewEvaluation(row)">查看评价</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -107,6 +107,73 @@
         <el-descriptions-item label="物流公司">{{ detailOrder.logisticsCompany || '-' }}</el-descriptions-item>
         <el-descriptions-item label="物流单号">{{ detailOrder.logisticsNo || '-' }}</el-descriptions-item>
       </el-descriptions>
+    </el-dialog>
+
+    <el-dialog v-model="showEvaluationDialog" title="订单评价" width="700px">
+      <div v-if="evaluationData">
+        <!-- 订单基本信息 -->
+        <el-descriptions :column="2" border size="small" style="margin-bottom:20px">
+          <el-descriptions-item label="订单编号">{{ evaluationData.orderCode || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="商品名称">{{ evaluationData.productName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="评价时间">{{ evaluationData.evalTime || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="情感分析">
+            <el-tag :type="evaluationData.sentiment === 'POSITIVE' ? 'success' : evaluationData.sentiment === 'NEGATIVE' ? 'danger' : 'info'" size="small">
+              {{ evaluationData.sentiment === 'POSITIVE' ? '好评' : evaluationData.sentiment === 'NEGATIVE' ? '差评' : '中评' }}
+            </el-tag>
+          </el-descriptions-item>
+        </el-descriptions>
+
+        <!-- 多维评价维度 -->
+        <div class="eval-section">
+          <div class="eval-section-title">评价维度</div>
+          <div class="eval-dimensions">
+            <div class="eval-dim-item">
+              <span class="eval-dim-label">商品质量</span>
+              <el-rate v-model="evaluationData.scoreQuality" disabled show-score text-color="#ff9900" />
+            </div>
+            <div class="eval-dim-item">
+              <span class="eval-dim-label">物流配送</span>
+              <el-rate v-model="evaluationData.scoreDelivery" disabled show-score text-color="#ff9900" />
+            </div>
+            <div class="eval-dim-item">
+              <span class="eval-dim-label">服务态度</span>
+              <el-rate v-model="evaluationData.scoreService" disabled show-score text-color="#ff9900" />
+            </div>
+            <div class="eval-dim-item">
+              <span class="eval-dim-label">售后服务</span>
+              <el-rate v-model="evaluationData.scoreAftersale" disabled show-score text-color="#ff9900" />
+            </div>
+            <div class="eval-dim-item">
+              <span class="eval-dim-label">性价比</span>
+              <el-rate v-model="evaluationData.scoreValue" disabled show-score text-color="#ff9900" />
+            </div>
+          </div>
+        </div>
+
+        <!-- 评价内容 -->
+        <div class="eval-section">
+          <div class="eval-section-title">评价内容</div>
+          <div class="eval-content">{{ evaluationData.content || '暂无评价内容' }}</div>
+        </div>
+
+        <!-- 评价标签 -->
+        <div class="eval-section" v-if="evaluationData.tags">
+          <div class="eval-section-title">评价标签</div>
+          <div class="eval-tags">
+            <el-tag v-for="tag in evaluationData.tags.split(',')" :key="tag" size="small" style="margin-right:6px;margin-bottom:4px">{{ tag.trim() }}</el-tag>
+          </div>
+        </div>
+
+        <!-- 商家回复 -->
+        <div class="eval-section" v-if="evaluationData.merchantReply">
+          <div class="eval-section-title">商家回复</div>
+          <div class="eval-reply">
+            <div class="eval-reply-content">{{ evaluationData.merchantReply }}</div>
+            <div class="eval-reply-time" v-if="evaluationData.replyTime">回复时间：{{ evaluationData.replyTime }}</div>
+          </div>
+        </div>
+      </div>
+      <el-empty v-else description="暂无评价信息" />
     </el-dialog>
 
     <el-dialog v-model="showPayDialog" title="确认支付" width="400px">
@@ -182,8 +249,10 @@ const showDetailDialog = ref(false)
 const showPayDialog = ref(false)
 const showFulfillDialog = ref(false)
 const showRefundDialog = ref(false)
+const showEvaluationDialog = ref(false)
 const detailOrder = ref(null)
 const currentOrder = ref(null)
+const evaluationData = ref(null)
 
 const payForm = ref({ payMethod: 'WECHAT', payNo: '' })
 const fulfillForm = ref({ logisticsCompany: '', logisticsNo: '' })
@@ -201,8 +270,8 @@ const fetchOrders = async () => {
     
     const res = await request.get('/order', { params })
     if (res.code === 200) {
-      orders.value = res.data || []
-      total.value = orders.value.length
+      orders.value = res.data?.list || res.data || []
+      total.value = res.data?.total || orders.value.length
     }
   } catch (e) {
     console.error('Failed to fetch orders:', e)
@@ -239,6 +308,36 @@ const viewOrder = async (order) => {
     detailOrder.value = order
   }
   showDetailDialog.value = true
+}
+
+const viewEvaluation = async (order) => {
+  try {
+    const res = await request.get(`/order/${order.id}/evaluation`)
+    if (res.code === 200 && res.data) {
+      const e = res.data
+      evaluationData.value = {
+        orderCode: order.orderCode,
+        productName: order.productName,
+        scoreQuality: e.scoreQuality || 5,
+        scoreDelivery: e.scoreDelivery || 5,
+        scoreService: e.scoreService || 5,
+        scoreAftersale: e.scoreAftersale || 5,
+        scoreValue: e.scoreValue || 5,
+        content: e.content || '暂无评价内容',
+        tags: e.tags || '',
+        sentiment: e.sentiment || 'POSITIVE',
+        merchantReply: e.merchantReply || '',
+        replyTime: e.replyTime || '',
+        evalTime: e.createTime || order.createTime || '-'
+      }
+    } else {
+      evaluationData.value = null
+    }
+  } catch (e) {
+    console.error('Failed to fetch evaluation:', e)
+    evaluationData.value = null
+  }
+  showEvaluationDialog.value = true
 }
 
 const handlePay = (order) => {
@@ -335,3 +434,64 @@ onMounted(async () => {
   await Promise.all([fetchOrders(), fetchStats()])
 })
 </script>
+
+<style scoped>
+.eval-section {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
+}
+.eval-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+.eval-dimensions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.eval-dim-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.eval-dim-label {
+  width: 80px;
+  font-size: 13px;
+  color: #666;
+  text-align: right;
+  flex-shrink: 0;
+}
+.eval-content {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.8;
+  white-space: pre-wrap;
+}
+.eval-tags {
+  display: flex;
+  flex-wrap: wrap;
+}
+.eval-reply {
+  background: #f0f9eb;
+  padding: 12px;
+  border-radius: 6px;
+  border-left: 3px solid #67c23a;
+}
+.eval-reply-content {
+  font-size: 14px;
+  color: #333;
+  line-height: 1.6;
+}
+.eval-reply-time {
+  font-size: 12px;
+  color: #999;
+  margin-top: 8px;
+}
+</style>

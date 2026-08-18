@@ -5,7 +5,7 @@ import http from '@/utils/http'
 import { ElMessage } from 'element-plus'
 
 const merchantStore = useMerchantStore()
-const merchantId = computed(() => merchantStore.merchantInfo?.merchant?.id || '')
+const merchantId = computed(() => merchantStore.merchantInfo?.id || merchantStore.merchantInfo?.merchant?.id || '')
 
 const stats = ref({
   productTotal: 0,

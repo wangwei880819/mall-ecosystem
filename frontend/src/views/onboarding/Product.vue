@@ -37,9 +37,9 @@
       </el-table-column>
       <el-table-column prop="stock" label="库存" width="80" />
       <el-table-column prop="salesCount" label="销量" width="80" />
-      <el-table-column label="审核状态" width="100">
+      <el-table-column label="审核状态" width="140">
         <template #default="{ row }">
-          <el-tag :type="getAuditStatusType(row.status)">{{ getAuditStatusText(row.status) }}</el-tag>
+          <el-tag :type="getAuditStatusType(row)">{{ getAuditStatusText(row) }}</el-tag>
         </template>
       </el-table-column>
       <el-table-column prop="status" label="状态" width="100">
@@ -195,56 +195,79 @@
     </el-dialog>
 
     <!-- 查看详情弹窗 -->
-    <el-dialog v-model="showViewDialog" title="商品详情" width="700px" :close-on-click-modal="false">
+    <el-dialog v-model="showViewDialog" title="商品详情" width="800px" :close-on-click-modal="false">
       <template v-if="viewProductData">
-        <el-descriptions :column="2" border>
-          <el-descriptions-item label="商品编号">{{ viewProductData.productCode }}</el-descriptions-item>
-          <el-descriptions-item label="商品名称">{{ viewProductData.productName }}</el-descriptions-item>
-          <el-descriptions-item label="商品类型">
-            <el-tag :type="getProductTypeTag(viewProductData.productType)">{{ getProductTypeText(viewProductData.productType) }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="商品分类">{{ viewProductData.categoryName || viewProductData.category }}</el-descriptions-item>
-          <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="品牌">{{ viewProductData.brand || '-' }}</el-descriptions-item>
-          <el-descriptions-item label="售价">¥{{ (viewProductData.price || 0).toFixed(2) }}</el-descriptions-item>
-          <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="市场价">¥{{ (viewProductData.marketPrice || 0).toFixed(2) }}</el-descriptions-item>
-          <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="库存">{{ viewProductData.stock || 0 }}</el-descriptions-item>
-          <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="销量">{{ viewProductData.salesCount || 0 }}</el-descriptions-item>
-          <el-descriptions-item label="当前状态">
-            <el-tag :type="getStatusType(viewProductData.status)">{{ getStatusText(viewProductData.status) }}</el-tag>
-          </el-descriptions-item>
-          <el-descriptions-item label="创建时间">{{ viewProductData.createTime || '-' }}</el-descriptions-item>
-          <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="商品介绍" :span="2">{{ viewProductData.description || '-' }}</el-descriptions-item>
+        <el-tabs v-model="detailTab">
+          <el-tab-pane label="基本信息" name="basic">
+            <el-descriptions :column="2" border>
+              <el-descriptions-item label="商品编号">{{ viewProductData.productCode }}</el-descriptions-item>
+              <el-descriptions-item label="商品名称">{{ viewProductData.productName }}</el-descriptions-item>
+              <el-descriptions-item label="商品类型">
+                <el-tag :type="getProductTypeTag(viewProductData.productType)">{{ getProductTypeText(viewProductData.productType) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="所属商户">{{ viewProductData.merchantName || '-' }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="商品分类">{{ viewProductData.categoryName || viewProductData.category || '-' }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="品牌">{{ viewProductData.brand || '-' }}</el-descriptions-item>
+              <el-descriptions-item label="售价">¥{{ (viewProductData.price || 0).toFixed(2) }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="市场价">¥{{ (viewProductData.marketPrice || 0).toFixed(2) }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="会员价">¥{{ (viewProductData.vipPrice || 0).toFixed(2) }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="库存">{{ viewProductData.stock || 0 }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="销量">{{ viewProductData.salesCount || 0 }}</el-descriptions-item>
+              <el-descriptions-item label="审核状态">
+                <el-tag :type="getAuditStatusType(viewProductData)">{{ getAuditStatusText(viewProductData) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="当前状态">
+                <el-tag :type="getStatusType(viewProductData.status)">{{ getStatusText(viewProductData.status) }}</el-tag>
+              </el-descriptions-item>
+              <el-descriptions-item label="创建时间">{{ viewProductData.createTime || '-' }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="卖点标签">{{ viewProductData.tags || '-' }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT'" label="商品介绍" :span="2">{{ viewProductData.description || '-' }}</el-descriptions-item>
+              <el-descriptions-item v-if="viewProductData.productType !== 'BENEFIT' && viewProductData.detail" label="商品详情" :span="2">
+                <div v-html="viewProductData.detail" style="max-height:200px;overflow-y:auto"></div>
+              </el-descriptions-item>
 
-          <template v-if="viewProductData.productType === 'BENEFIT' && viewProductData._benefit">
-            <el-descriptions-item label="权益类型">{{ getBenefitTypeText(viewProductData._benefit.benefitType) }}</el-descriptions-item>
-            <el-descriptions-item label="兑换方式">{{ getExchangeMethodText(viewProductData._benefit.exchangeMethod) }}</el-descriptions-item>
-            <el-descriptions-item label="面值">¥{{ (viewProductData._benefit.faceValue || 0).toFixed(2) }}</el-descriptions-item>
-            <el-descriptions-item label="结算价">¥{{ (viewProductData._benefit.settlePrice || 0).toFixed(2) }}</el-descriptions-item>
-            <el-descriptions-item label="有效期类型">{{ getValidityTypeText(viewProductData._benefit.validityType) }}</el-descriptions-item>
-            <el-descriptions-item label="有效天数">{{ viewProductData._benefit.validityType === 'DAYS_AFTER_RECEIVE' ? viewProductData._benefit.validityDays + '天' : '-' }}</el-descriptions-item>
-            <el-descriptions-item v-if="viewProductData._benefit.validityType === 'FIXED_DATE'" label="有效期范围">{{ viewProductData._benefit.validityStart || '-' }} ~ {{ viewProductData._benefit.validityEnd || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="总库存">{{ viewProductData._benefit.stockTotal || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="每日限兑">{{ viewProductData._benefit.stockDailyLimit || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="每人限兑">{{ viewProductData._benefit.stockPerUser || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="联系方式">{{ viewProductData._benefit.supplierContact || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="退款政策">{{ getRefundPolicyText(viewProductData._benefit.refundPolicy) }}</el-descriptions-item>
-            <el-descriptions-item label="使用规则" :span="2">{{ viewProductData._benefit.usageRules || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="适用范围" :span="2">{{ viewProductData._benefit.applicableScope || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="详细说明" :span="2">{{ viewProductData._benefit.detailDesc || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="权益描述" :span="2">{{ viewProductData._benefit.benefitDescription || '-' }}</el-descriptions-item>
-          </template>
-        </el-descriptions>
-
-        <div v-if="viewProductData.auditTime || viewProductData.auditor || viewProductData.rejectReason" class="audit-section">
-          <h4 style="margin: 16px 0 8px; color: #333;">审核记录</h4>
-          <el-descriptions :column="1" border size="small">
-            <el-descriptions-item label="审核时间">{{ viewProductData.auditTime || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="审核人">{{ viewProductData.auditor || '-' }}</el-descriptions-item>
-            <el-descriptions-item v-if="viewProductData.rejectReason" label="审核意见">
-              <span style="color: #f56c6c;">{{ viewProductData.rejectReason }}</span>
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
+              <template v-if="viewProductData.productType === 'BENEFIT' && viewProductData._benefit">
+                <el-descriptions-item label="权益类型">{{ getBenefitTypeText(viewProductData._benefit.benefitType) }}</el-descriptions-item>
+                <el-descriptions-item label="兑换方式">{{ getExchangeMethodText(viewProductData._benefit.exchangeMethod) }}</el-descriptions-item>
+                <el-descriptions-item label="面值">¥{{ (viewProductData._benefit.faceValue || 0).toFixed(2) }}</el-descriptions-item>
+                <el-descriptions-item label="结算价">¥{{ (viewProductData._benefit.settlePrice || 0).toFixed(2) }}</el-descriptions-item>
+                <el-descriptions-item label="有效期类型">{{ getValidityTypeText(viewProductData._benefit.validityType) }}</el-descriptions-item>
+                <el-descriptions-item label="有效天数">{{ viewProductData._benefit.validityType === 'DAYS_AFTER_RECEIVE' ? viewProductData._benefit.validityDays + '天' : '-' }}</el-descriptions-item>
+                <el-descriptions-item v-if="viewProductData._benefit.validityType === 'FIXED_DATE'" label="有效期范围">{{ viewProductData._benefit.validityStart || '-' }} ~ {{ viewProductData._benefit.validityEnd || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="总库存">{{ viewProductData._benefit.stockTotal || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="每日限兑">{{ viewProductData._benefit.stockDailyLimit || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="每人限兑">{{ viewProductData._benefit.stockPerUser || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="联系方式">{{ viewProductData._benefit.supplierContact || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="退款政策">{{ getRefundPolicyText(viewProductData._benefit.refundPolicy) }}</el-descriptions-item>
+                <el-descriptions-item label="使用规则" :span="2">{{ viewProductData._benefit.usageRules || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="适用范围" :span="2">{{ viewProductData._benefit.applicableScope || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="详细说明" :span="2">{{ viewProductData._benefit.detailDesc || '-' }}</el-descriptions-item>
+                <el-descriptions-item label="权益描述" :span="2">{{ viewProductData._benefit.benefitDescription || '-' }}</el-descriptions-item>
+              </template>
+            </el-descriptions>
+          </el-tab-pane>
+          <el-tab-pane label="审核记录" name="audit">
+            <el-timeline v-if="productAuditLogs.length > 0">
+              <el-timeline-item
+                v-for="log in productAuditLogs"
+                :key="log.id"
+                :timestamp="log.time"
+                placement="top"
+                :color="log.result === '驳回' ? '#f56c6c' : '#409eff'"
+              >
+                <el-card shadow="hover">
+                  <p><strong>{{ log.nodeName }}</strong></p>
+                  <p>操作人：{{ log.operator || '-' }}</p>
+                  <p v-if="log.result">
+                    审核结果：<el-tag :type="log.result === '通过' ? 'success' : 'danger'" size="small">{{ log.result }}</el-tag>
+                  </p>
+                  <p v-if="log.comment" style="color: #f56c6c;">审核意见：{{ log.comment }}</p>
+                </el-card>
+              </el-timeline-item>
+            </el-timeline>
+            <el-empty v-else description="暂无审核记录" />
+          </el-tab-pane>
+        </el-tabs>
       </template>
     </el-dialog>
 
@@ -666,7 +689,67 @@ const pagedProducts = computed(() => {
   return products.value.slice(start, start + pageSize.value)
 })
 
+const productAuditLogs = computed(() => {
+  const p = viewProductData.value
+  if (!p) return []
+  const logs = []
+  let id = 0
+
+  // 1. 商品提交
+  if (p.createTime) {
+    logs.push({
+      id: id++,
+      nodeName: '商品提交',
+      time: p.createTime,
+      operator: p.merchantName || '商户',
+      result: '',
+      comment: ''
+    })
+  }
+
+  // 2. 一级审核
+  if (p.level1AuditTime) {
+    const isApproved = p.reviewLevel >= 1
+    logs.push({
+      id: id++,
+      nodeName: '一级选品审核',
+      time: p.level1AuditTime,
+      operator: p.level1Auditor || '-',
+      result: isApproved ? '通过' : '驳回',
+      comment: p.rejectReason || p.approveReason || ''
+    })
+  }
+
+  // 3. 二级审核
+  if (p.level2AuditTime) {
+    const isApproved = p.reviewLevel >= 2
+    logs.push({
+      id: id++,
+      nodeName: '二级选品审核',
+      time: p.level2AuditTime,
+      operator: p.level2Auditor || '-',
+      result: isApproved ? '通过' : '驳回',
+      comment: p.rejectReason || p.approveReason || ''
+    })
+  }
+
+  // 4. 如果只有旧版审核记录
+  if (logs.length <= 1 && (p.auditTime || p.auditor || p.rejectReason)) {
+    logs.push({
+      id: id++,
+      nodeName: '审核记录',
+      time: p.auditTime || '-',
+      operator: p.auditor || '-',
+      result: p.rejectReason ? '驳回' : '通过',
+      comment: p.rejectReason || ''
+    })
+  }
+
+  return logs
+})
+
 const viewProductData = ref(null)
+const detailTab = ref('basic')
 const resubmitTarget = ref(null)
 
 const form = ref({
@@ -745,15 +828,22 @@ const getStatusText = (status) => {
   return map[status] || status
 }
 
-const getAuditStatusType = (status) => {
+const getAuditStatusType = (row) => {
+  const status = row.status
   const types = { PENDING: 'warning', AUDITING: '', APPROVED: 'success', REJECTED: 'danger' }
   if (status === 'ON_SHELF' || status === 'OFF_SHELF') return 'success'
   return types[status] || 'info'
 }
 
-const getAuditStatusText = (status) => {
-  const map = { PENDING: '待审核', AUDITING: '审核中', APPROVED: '已通过', REJECTED: '已驳回' }
+const getAuditStatusText = (row) => {
+  const status = row.status
+  const map = { AUDITING: '审核中', APPROVED: '已通过', REJECTED: '已驳回' }
   if (status === 'ON_SHELF' || status === 'OFF_SHELF') return '已通过'
+  if (status === 'PENDING') {
+    const reviewLevel = row.reviewLevel || 0
+    if (reviewLevel >= 1) return '待二级选品审核'
+    return '待一级选品审核'
+  }
   return map[status] || status
 }
 
@@ -942,6 +1032,7 @@ const editProduct = async (product) => {
 }
 
 const viewProduct = async (product) => {
+  detailTab.value = 'basic'
   viewProductData.value = product
   if (product.productType === 'BENEFIT') {
     try {
@@ -1336,7 +1427,7 @@ const submitBenefit = async () => {
   if (!benefitForm.value.benefitName) { ElMessage.warning('请输入权益名称'); return }
   benefitSubmitting.value = true
   try {
-    const postData = { ...benefitForm.value, productType: 'BENEFIT', status: 'PENDING' }
+    const postData = { ...benefitForm.value, merchantId: benefitForm.value.supplierId, productType: 'BENEFIT', status: 'PENDING' }
     const res = await request.post('/benefit', postData)
     if (res.code === 200) {
       ElMessage.success('权益引入已提交')
